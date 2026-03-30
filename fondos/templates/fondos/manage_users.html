@@ -1,0 +1,161 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Usuarios y Alumnos | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold"><i class="bi bi-people"></i> Gestión de Usuarios y Alumnos</h2>
+        <p class="text-muted">Crea las cuentas de acceso para los apoderados y registra a los alumnos.</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <!-- Apoderados -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Apoderados (Cuentas)</h5>
+                <button class="btn btn-sm btn-primary-custom fw-bold" data-bs-toggle="modal" data-bs-target="#createParentModal">
+                    + Nuevo
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Usuario</th>
+                            <th>Nombre Completo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ u.username }}</td>
+                            <td>{{ u.first_name }} {{ u.last_name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center py-3 text-muted">Aún no hay apoderados registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alumnos -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Alumnos</h5>
+                <button class="btn btn-sm btn-primary-custom fw-bold" data-bs-toggle="modal" data-bs-target="#createStudentModal">
+                    + Nuevo
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Nombre</th>
+                            <th>Apoderado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ student.first_name }} {{ student.last_name }}</td>
+                            <td>{{ student.parent.username|default:"- No Asignado -" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center py-3 text-muted">Aún no hay alumnos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create Parent -->
+<div class="modal fade" id="createParentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Crear Cuenta de Apoderado</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post">
+          <div class="modal-body">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_user">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nombre de Usuario (RUT u otro)</label>
+                    <input type="text" name="username" class="form-control" placeholder="Ej: maria.perez" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Contraseña para ingresar</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Nombre (Opcional)</label>
+                        <input type="text" name="first_name" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Apellido (Opcional)</label>
+                        <input type="text" name="last_name" class="form-control">
+                    </div>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary-custom">Guardar Apoderado</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Create Student -->
+<div class="modal fade" id="createStudentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Registrar Alumno</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post">
+          <div class="modal-body">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_student">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nombre</label>
+                    <input type="text" name="first_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Apellido</label>
+                    <input type="text" name="last_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Asignar Apoderado</label>
+                    <select name="parent_id" class="form-select">
+                        <option value="">- Opcional: Seleccione apoderado a cargo -</option>
+                        {% for u in users %}
+                        <option value="{{ u.id }}">{{ u.username }} ({{ u.first_name }} {{ u.last_name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary-custom">Guardar Alumno</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

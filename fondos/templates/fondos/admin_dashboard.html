@@ -39,8 +39,49 @@
                         <a href="{% url 'distribute_funds' activity.id %}" class="btn btn-sm btn-outline-primary fw-bold">
                             Repartir / Ver Detalle
                         </a>
+                        <button class="btn btn-sm btn-outline-secondary fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#editActivityModal{{ activity.id }}">
+                            Editar
+                        </button>
                     </td>
                 </tr>
+                
+                <!-- Modal Edit Activity -->
+                <div class="modal fade" id="editActivityModal{{ activity.id }}" tabindex="-1">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Editar Actividad</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <form method="post" action="{% url 'edit_activity' activity.id %}">
+                          <div class="modal-body">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Nombre de la Actividad</label>
+                                    <input type="text" name="name" class="form-control" value="{{ activity.name }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Fecha Actual: {{ activity.date|date:"d/m/Y" }}</label>
+                                    <input type="date" name="date" class="form-control">
+                                    <div class="form-text">Si no deseas cambiarla, deja este campo vacío.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Monto Referencial</label>
+                                    <input type="number" name="total_amount" class="form-control" value="{{ activity.total_amount }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Descripción</label>
+                                    <textarea name="description" class="form-control" rows="2">{{ activity.description }}</textarea>
+                                </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary-custom">Guardar Cambios</button>
+                          </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
                 {% empty %}
                 <tr>
                     <td colspan="4" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>

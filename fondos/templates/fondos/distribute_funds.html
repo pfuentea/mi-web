@@ -25,6 +25,7 @@
                     <th class="ps-4">Alumno</th>
                     <th>Apoderado</th>
                     <th class="text-end pe-4">Monto Asignado</th>
+                    <th class="text-end pe-4" style="width: 140px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -33,7 +34,46 @@
                     <td class="ps-4 fw-semibold">{{ dist.student.first_name }} {{ dist.student.last_name }}</td>
                     <td>{{ dist.student.parent.username|default:"- Sin Asignar -" }}</td>
                     <td class="text-end pe-4 fw-bold text-success">${{ dist.amount }}</td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-secondary p-1 px-2" data-bs-toggle="modal" data-bs-target="#editDistModal{{ dist.id }}">
+                            ✎ Editar
+                        </button>
+                        <form method="post" action="{% url 'delete_distribution' dist.id %}" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar esta asignación? el monto será restado del total del alumno.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Eliminar asignación">
+                                🗑
+                            </button>
+                        </form>
+                    </td>
                 </tr>
+                
+                <!-- Modal Edit Dist -->
+                <div class="modal fade" id="editDistModal{{ dist.id }}" tabindex="-1">
+                  <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h6 class="modal-title fw-bold">Editar Monto</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <form method="post" action="{% url 'edit_distribution' dist.id %}">
+                          <div class="modal-body text-start">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small">Nuevo Monto para {{ dist.student.first_name }}</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" name="amount" class="form-control" value="{{ dist.amount }}" required>
+                                    </div>
+                                </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary-custom btn-sm">Actualizar</button>
+                          </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
                 {% endfor %}
             </tbody>
         </table>

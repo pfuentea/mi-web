@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from .models import Student, Activity, FundDistribution
+from django.contrib.auth.models import User
 from django.contrib import messages
 
 @login_required
@@ -93,3 +94,81 @@ def distribute_funds(request, activity_id):
         'distributed_ids': distributed_ids,
     }
     return render(request, 'fondos/distribute_funds.html', context)
+
+@staff_member_required
+def manage_users(request):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create_user':
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            if username and password:
+                if User.objects.filter(username=username).exists():
+                    messages.error(request, 'Ese nombre de usuario ya existe.')
+                else:
+                    User.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
+                    messages.success(request, f'Apoderado {username} creado exitosamente.')
+            else:
+                messages.error(request, 'Usuario y contraseña son requeridos.')
+        
+        elif action == 'create_student':
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            parent_id = request.POST.get('parent_id')
+            
+            if first_name and last_name:
+                parent = User.objects.filter(id=parent_id).first() if parent_id else None
+                Student.objects.create(first_name=first_name, last_name=last_name, parent=parent)
+                messages.success(request, f'Alumno {first_name} {last_name} creado exitosamente.')
+            else:
+                messages.error(request, 'Nombre y Apellido son requeridos para el alumno.')
+        return redirect('manage_users')
+
+    users = User.objects.filter(is_staff=False).order_by('username')
+    students = Student.objects.all().order_by('first_name')
+    context = {
+        'users': users,
+        'students': students
+    }
+    return render(request, 'fondos/manage_users.html', context)
+
+@staff_member_required
+def edit_activity(request, activity_id):
+    activity = get_object_or_404(Activity, id=activity_id)
+    if request.method == 'POST':
+        activity.name = request.POST.get('name', activity.name)
+        
+        # Get date, if empty keep the existing one
+        new_date = request.POST.get('date')
+        if new_date:
+            activity.date = new_date
+            
+        activity.total_amount = request.POST.get('total_amount', activity.total_amount)
+        activity.description = request.POST.get('description', activity.description)
+        activity.save()
+        messages.success(request, 'Actividad actualizada correctamente.')
+    return redirect('admin_dashboard')
+
+@staff_member_required
+def edit_distribution(request, dist_id):
+    dist = get_object_or_404(FundDistribution, id=dist_id)
+    if request.method == 'POST':
+        new_amount = request.POST.get('amount')
+        if new_amount and new_amount.lstrip('-').isdigit():
+            dist.amount = int(new_amount)
+            dist.save()
+            messages.success(request, 'Monto actualizado correctamente.')
+        else:
+            messages.error(request, 'Monto numérico inválido.')
+    return redirect('distribute_funds', activity_id=dist.activity.id)
+
+@staff_member_required
+def delete_distribution(request, dist_id):
+    dist = get_object_or_404(FundDistribution, id=dist_id)
+    activity_id = dist.activity.id
+    if request.method == 'POST':
+        dist.delete()
+        messages.success(request, 'Distribución de fondo eliminada.')
+    return redirect('distribute_funds', activity_id=activity_id)
