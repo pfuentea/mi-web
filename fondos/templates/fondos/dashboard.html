@@ -1,0 +1,57 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Mi Panel | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">Hola, {{ user.first_name|default:user.username }}</h2>
+        <p class="text-muted">Aquí puedes ver los fondos acumulados por tus pupilos.</p>
+    </div>
+</div>
+
+{% if not students %}
+<div class="alert alert-info">Actualmente no tienes alumnos asociados a tu cuenta. contacta al coordinador.</div>
+{% endif %}
+
+<div class="row g-4">
+    {% for student in students %}
+    <div class="col-md-6">
+        <div class="card h-100 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0 fw-bold">{{ student.first_name }} {{ student.last_name }}</h4>
+                <span class="badge bg-success fs-5 px-3 py-2 border border-2 border-white shadow-sm">${{ student.total_funds }}</span>
+            </div>
+            
+            <hr class="text-muted my-3">
+            
+            <h6 class="fw-bold mb-3">Detalle de Actividades:</h6>
+            {% if student.distributions.all %}
+            <div class="table-responsive">
+                <table class="table table-sm table-custom table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Actividad</th>
+                            <th class="text-end">Monto Recibido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dist in student.distributions.all|dictsortreversed:"activity.date" %}
+                        <tr>
+                            <td class="text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
+                            <td>{{ dist.activity.name }}</td>
+                            <td class="text-success fw-bold text-end">+${{ dist.amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted small italic">Aún no hay fondos asignados a este alumno.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

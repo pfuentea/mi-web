@@ -1,0 +1,91 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Panel de Administrador | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="fw-bold"><i class="bi bi-shield-lock"></i> Panel de Administración</h2>
+        <p class="text-muted">Crea actividades y distribuye los fondos entre los alumnos.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <button class="btn btn-primary-custom fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#createActivityModal">
+            + Nueva Actividad
+        </button>
+    </div>
+</div>
+
+<div class="card p-0 shadow-sm border mt-4">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-bold">Actividades Recientes</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Fecha</th>
+                    <th>Nombre</th>
+                    <th>Monto Ref.</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in activities %}
+                <tr>
+                    <td class="ps-4 text-muted">{{ activity.date|date:"d M Y" }}</td>
+                    <td class="fw-semibold">{{ activity.name }}</td>
+                    <td>${{ activity.total_amount }}</td>
+                    <td>
+                        <a href="{% url 'distribute_funds' activity.id %}" class="btn btn-sm btn-outline-primary fw-bold">
+                            Repartir / Ver Detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createActivityModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="createActivityModalLabel">Crear Actividad</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post">
+          <div class="modal-body">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nombre de la Actividad</label>
+                    <input type="text" name="name" class="form-control" placeholder="Ej. Kermesse 2024" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Fecha</label>
+                    <input type="date" name="date" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Monto Referencial (Opcional)</label>
+                    <input type="number" name="total_amount" class="form-control" value="0">
+                    <div class="form-text">Esto es sólo para organizarte, la división real la harás después.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Descripción</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary-custom">Guardar Actividad</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

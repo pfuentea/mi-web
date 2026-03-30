@@ -1,0 +1,49 @@
+from django.db import models
+from django.contrib.auth.models import User
+
+class Student(models.Model):
+    first_name = models.CharField(max_length=100, verbose_name="Nombre")
+    last_name = models.CharField(max_length=100, verbose_name="Apellido")
+    parent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='students', verbose_name="Apoderado")
+
+    class Meta:
+        verbose_name = "Alumno"
+        verbose_name_plural = "Alumnos"
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def total_funds(self):
+        # Calculates the total sum of funds assigned to this student
+        distributions = self.distributions.all()
+        return sum(dist.amount for dist in distributions) if distributions else 0
+
+class Activity(models.Model):
+    name = models.CharField(max_length=200, verbose_name="Nombre de la Actividad")
+    date = models.DateField(verbose_name="Fecha")
+    description = models.TextField(blank=True, verbose_name="Descripción")
+    total_amount = models.IntegerField(default=0, verbose_name="Monto total a repartir (opcional)", help_text="Monto referencial")
+
+    class Meta:
+        verbose_name = "Actividad"
+        verbose_name_plural = "Actividades"
+
+    def __str__(self):
+        return f"{self.name} ({self.date})"
+
+class FundDistribution(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='distributions', verbose_name="Alumno")
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='distributions', verbose_name="Actividad")
+    amount = models.IntegerField(verbose_name="Monto")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Distribución de Fondo"
+        verbose_name_plural = "Distribuciones de Fondos"
+        # Prevent double assignments per student per activity by default? 
+        # Actually a student might get multiple but generally we want to track by activity.
+        # Let's keep it flexible.
+
+    def __str__(self):
+        return f"{self.student} recibió ${self.amount} en {self.activity.name}"
