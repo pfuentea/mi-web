@@ -11,45 +11,106 @@
 </div>
 
 {% if not students %}
-<div class="alert alert-info">Actualmente no tienes alumnos asociados a tu cuenta. contacta al coordinador.</div>
+<div class="alert alert-info">Actualmente no tienes alumnos asociados a tu cuenta. Contacta al coordinador.</div>
 {% endif %}
 
 <div class="row g-4">
     {% for student in students %}
-    <div class="col-md-6">
-        <div class="card h-100 p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="col-12">
+        <!-- Encabezado del alumno -->
+        <div class="card mb-0 border-bottom-0" style="border-radius: 12px 12px 0 0;">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
                 <h4 class="mb-0 fw-bold">{{ student.first_name }} {{ student.last_name }}</h4>
-                <span class="badge bg-success fs-5 px-3 py-2 border border-2 border-white shadow-sm">${{ student.total_funds }}</span>
+                <span class="badge bg-success fs-5 px-3 py-2 shadow-sm">Total: ${{ student.total_funds }}</span>
             </div>
-            
-            <hr class="text-muted my-3">
-            
-            <h6 class="fw-bold mb-3">Detalle de Actividades:</h6>
-            {% if student.distributions.all %}
-            <div class="table-responsive">
-                <table class="table table-sm table-custom table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Actividad</th>
-                            <th class="text-end">Monto Recibido</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for dist in student.distributions.all|dictsortreversed:"activity.date" %}
-                        <tr>
-                            <td class="text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
-                            <td>{{ dist.activity.name }}</td>
-                            <td class="text-success fw-bold text-end">+${{ dist.amount }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        </div>
+
+        <div class="row g-0 border rounded-bottom shadow-sm mb-4">
+            <!-- Actividades -->
+            <div class="col-md-6 border-end">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Fondos de Actividades</h6>
+                    <span class="badge bg-success">${{ student.total_actividades }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Fecha</th>
+                                <th>Actividad</th>
+                                <th class="text-end pe-3">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dist in student.distributions.all %}
+                            <tr>
+                                <td class="ps-3 text-muted small">{{ dist.activity.date|date:"d M Y" }}</td>
+                                <td>{{ dist.activity.name }}</td>
+                                <td class="text-end pe-3 text-success fw-bold">+${{ dist.amount }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-3 text-muted small">Sin fondos asignados aún.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            {% else %}
-            <p class="text-muted small italic">Aún no hay fondos asignados a este alumno.</p>
-            {% endif %}
+
+            <!-- Cuotas -->
+            <div class="col-md-6">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Cuotas</h6>
+                    <span class="badge bg-success">${{ student.total_cuotas_pagadas }} pagado</span>
+                </div>
+
+                {% with pagadas=student.pagos_pagados pendientes=student.pagos_pendientes %}
+
+                {% if pendientes %}
+                <div class="px-3 pt-2 pb-1">
+                    <p class="small fw-semibold text-warning mb-1">⚠ Pendientes</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <tbody>
+                            {% for pago in pendientes %}
+                            <tr class="table-warning">
+                                <td class="ps-3 text-muted small">{{ pago.cuota.date|date:"d M Y" }}</td>
+                                <td>{{ pago.cuota.name }}</td>
+                                <td class="text-end pe-3 text-muted">${{ pago.cuota.amount }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if pagadas %}
+                <div class="px-3 pt-2 pb-1">
+                    <p class="small fw-semibold text-success mb-1">✓ Pagadas</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <tbody>
+                            {% for pago in pagadas %}
+                            <tr>
+                                <td class="ps-3 text-muted small">{{ pago.cuota.date|date:"d M Y" }}</td>
+                                <td>{{ pago.cuota.name }}</td>
+                                <td class="text-end pe-3 text-success fw-bold">+${{ pago.cuota.amount }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if not pagadas and not pendientes %}
+                <div class="p-3 text-center text-muted small">Sin cuotas asignadas aún.</div>
+                {% endif %}
+
+                {% endwith %}
+            </div>
         </div>
     </div>
     {% endfor %}

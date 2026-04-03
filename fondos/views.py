@@ -196,6 +196,22 @@ def cuotas_list(request):
     return render(request, 'fondos/cuotas.html', context)
 
 @staff_member_required
+def edit_cuota(request, cuota_id):
+    cuota = get_object_or_404(Cuota, id=cuota_id)
+    if request.method == 'POST':
+        cuota.name = request.POST.get('name', cuota.name)
+        new_date = request.POST.get('date')
+        if new_date:
+            cuota.date = new_date
+        amount_str = request.POST.get('amount', '').strip()
+        if amount_str and amount_str.isdigit() and int(amount_str) > 0:
+            cuota.amount = int(amount_str)
+        cuota.description = request.POST.get('description', cuota.description)
+        cuota.save()
+        messages.success(request, 'Cuota actualizada correctamente.')
+    return redirect('cuotas_list')
+
+@staff_member_required
 def cuota_detail(request, cuota_id):
     cuota = get_object_or_404(Cuota, id=cuota_id)
     pagos = PagoCuota.objects.filter(cuota=cuota).select_related('student__parent').order_by('paid', 'student__last_name')

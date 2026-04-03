@@ -14,10 +14,24 @@ class Student(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     @property
+    def total_actividades(self):
+        return sum(dist.amount for dist in self.distributions.all())
+
+    @property
+    def pagos_pagados(self):
+        return self.pagos.filter(paid=True).select_related('cuota').order_by('-cuota__date')
+
+    @property
+    def pagos_pendientes(self):
+        return self.pagos.filter(paid=False).select_related('cuota').order_by('-cuota__date')
+
+    @property
+    def total_cuotas_pagadas(self):
+        return sum(p.cuota.amount for p in self.pagos_pagados)
+
+    @property
     def total_funds(self):
-        dist_total = sum(dist.amount for dist in self.distributions.all())
-        cuotas_total = sum(p.cuota.amount for p in self.pagos.filter(paid=True).select_related('cuota'))
-        return dist_total + cuotas_total
+        return self.total_actividades + self.total_cuotas_pagadas
 
 class Activity(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nombre de la Actividad")

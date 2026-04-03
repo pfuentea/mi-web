@@ -14,7 +14,7 @@
                     {{ student.parent.first_name|default:student.parent.username }} {{ student.parent.last_name }}
                 </a>
             {% else %}
-                <span>Sin apoderado asignado</span>
+                Sin apoderado asignado
             {% endif %}
         </p>
     </div>
@@ -27,11 +27,12 @@
 </div>
 
 <div class="row g-4">
-    <!-- Fondos de actividades -->
+    <!-- Actividades -->
     <div class="col-md-6">
         <div class="card shadow-sm border h-100">
-            <div class="card-header bg-white border-bottom py-3">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold">Fondos de Actividades</h5>
+                <span class="badge bg-success fs-6">${{ student.total_actividades }}</span>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -39,7 +40,7 @@
                         <tr>
                             <th class="ps-4">Fecha</th>
                             <th>Actividad</th>
-                            <th>Monto</th>
+                            <th class="text-end pe-3">Monto</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,7 +48,7 @@
                         <tr>
                             <td class="ps-4 text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
                             <td class="fw-semibold">{{ dist.activity.name }}</td>
-                            <td><span class="badge bg-success">${{ dist.amount }}</span></td>
+                            <td class="text-end pe-3"><span class="badge bg-success">${{ dist.amount }}</span></td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -63,41 +64,56 @@
     <!-- Cuotas -->
     <div class="col-md-6">
         <div class="card shadow-sm border h-100">
-            <div class="card-header bg-white border-bottom py-3">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold">Cuotas</h5>
+                <span class="badge bg-success fs-6">${{ student.total_cuotas_pagadas }}</span>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">Fecha</th>
-                            <th>Cuota</th>
-                            <th>Monto</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
+
+            {% with pagadas=student.pagos_pagados pendientes=student.pagos_pendientes %}
+
+            {% if pendientes %}
+            <div class="px-3 pt-3 pb-1">
+                <p class="fw-semibold text-warning mb-2 small">⚠ Pendientes ({{ pendientes|length }})</p>
+            </div>
+            <div class="table-responsive border-bottom">
+                <table class="table table-sm align-middle mb-0">
                     <tbody>
-                        {% for pago in pagos_cuotas %}
-                        <tr>
+                        {% for pago in pendientes %}
+                        <tr class="table-warning">
                             <td class="ps-4 text-muted">{{ pago.cuota.date|date:"d M Y" }}</td>
                             <td class="fw-semibold">{{ pago.cuota.name }}</td>
-                            <td>${{ pago.cuota.amount }}</td>
-                            <td>
-                                {% if pago.paid %}
-                                    <span class="badge bg-success">✓ Pagado</span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">Sin cuotas asignadas aún.</td>
+                            <td class="text-end pe-3 text-muted">${{ pago.cuota.amount }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% endif %}
+
+            {% if pagadas %}
+            <div class="px-3 pt-3 pb-1">
+                <p class="fw-semibold text-success mb-2 small">✓ Pagadas ({{ pagadas|length }})</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <tbody>
+                        {% for pago in pagadas %}
+                        <tr>
+                            <td class="ps-4 text-muted">{{ pago.cuota.date|date:"d M Y" }}</td>
+                            <td class="fw-semibold">{{ pago.cuota.name }}</td>
+                            <td class="text-end pe-3"><span class="badge bg-success">${{ pago.cuota.amount }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if not pagadas and not pendientes %}
+            <div class="p-4 text-center text-muted">Sin cuotas asignadas aún.</div>
+            {% endif %}
+
+            {% endwith %}
         </div>
     </div>
 </div>
