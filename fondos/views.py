@@ -168,7 +168,8 @@ def apoderado_detail(request, user_id):
 def student_detail(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     distributions = FundDistribution.objects.filter(student=student).select_related('activity').order_by('-activity__date')
-    context = {'student': student, 'distributions': distributions}
+    pagos_cuotas = PagoCuota.objects.filter(student=student).select_related('cuota').order_by('-cuota__date')
+    context = {'student': student, 'distributions': distributions, 'pagos_cuotas': pagos_cuotas}
     return render(request, 'fondos/student_detail.html', context)
 
 @staff_member_required

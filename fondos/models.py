@@ -15,8 +15,9 @@ class Student(models.Model):
 
     @property
     def total_funds(self):
-        distributions = self.distributions.all()
-        return sum(dist.amount for dist in distributions) if distributions else 0
+        dist_total = sum(dist.amount for dist in self.distributions.all())
+        cuotas_total = sum(p.cuota.amount for p in self.pagos.filter(paid=True).select_related('cuota'))
+        return dist_total + cuotas_total
 
 class Activity(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nombre de la Actividad")

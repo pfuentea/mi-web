@@ -21,38 +21,84 @@
     <div class="col-auto">
         <div class="card border-0 bg-success text-white px-4 py-3 text-center shadow-sm">
             <div class="fs-4 fw-bold">${{ student.total_funds }}</div>
-            <div class="small">Total recibido</div>
+            <div class="small">Total acumulado</div>
         </div>
     </div>
 </div>
 
-<div class="card shadow-sm border">
-    <div class="card-header bg-white border-bottom py-3">
-        <h5 class="mb-0 fw-bold">Actividades y Fondos Recibidos</h5>
+<div class="row g-4">
+    <!-- Fondos de actividades -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold">Fondos de Actividades</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Fecha</th>
+                            <th>Actividad</th>
+                            <th>Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dist in distributions %}
+                        <tr>
+                            <td class="ps-4 text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
+                            <td class="fw-semibold">{{ dist.activity.name }}</td>
+                            <td><span class="badge bg-success">${{ dist.amount }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">Sin fondos de actividades aún.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="ps-4">Fecha</th>
-                    <th>Actividad</th>
-                    <th>Monto Recibido</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for dist in distributions %}
-                <tr>
-                    <td class="ps-4 text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
-                    <td class="fw-semibold">{{ dist.activity.name }}</td>
-                    <td><span class="badge bg-success fs-6">${{ dist.amount }}</span></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="text-center py-4 text-muted">Este alumno no ha recibido fondos aún.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+    <!-- Cuotas -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold">Cuotas</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Fecha</th>
+                            <th>Cuota</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pago in pagos_cuotas %}
+                        <tr>
+                            <td class="ps-4 text-muted">{{ pago.cuota.date|date:"d M Y" }}</td>
+                            <td class="fw-semibold">{{ pago.cuota.name }}</td>
+                            <td>${{ pago.cuota.amount }}</td>
+                            <td>
+                                {% if pago.paid %}
+                                    <span class="badge bg-success">✓ Pagado</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">Sin cuotas asignadas aún.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
