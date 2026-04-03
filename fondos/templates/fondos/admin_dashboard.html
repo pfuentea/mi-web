@@ -26,6 +26,8 @@
                     <th class="ps-4">Fecha</th>
                     <th>Nombre</th>
                     <th>Monto Ref.</th>
+                    <th>Repartido</th>
+                    <th>Por Repartir</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -36,6 +38,18 @@
                     <td class="fw-semibold">{{ activity.name }}</td>
                     <td>${{ activity.total_amount }}</td>
                     <td>
+                        <span class="badge bg-success">${{ activity.monto_repartido }}</span>
+                    </td>
+                    <td>
+                        {% if activity.queda_por_repartir > 0 %}
+                            <span class="badge bg-warning text-dark">${{ activity.queda_por_repartir }}</span>
+                        {% elif activity.queda_por_repartir < 0 %}
+                            <span class="badge bg-danger">${{ activity.queda_por_repartir }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">$0</span>
+                        {% endif %}
+                    </td>
+                    <td>
                         <a href="{% url 'distribute_funds' activity.id %}" class="btn btn-sm btn-outline-primary fw-bold">
                             Repartir / Ver Detalle
                         </a>
@@ -44,7 +58,7 @@
                         </button>
                     </td>
                 </tr>
-                
+
                 <!-- Modal Edit Activity -->
                 <div class="modal fade" id="editActivityModal{{ activity.id }}" tabindex="-1">
                   <div class="modal-dialog">
@@ -84,7 +98,7 @@
                 </div>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>
+                    <td colspan="6" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -92,7 +106,7 @@
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal Nueva Actividad -->
 <div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createActivityModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

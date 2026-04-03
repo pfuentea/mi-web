@@ -1,0 +1,96 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}{{ cuota.name }} | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <a href="{% url 'cuotas_list' %}" class="text-muted text-decoration-none small">← Volver a Cuotas</a>
+        <h2 class="fw-bold mt-1">{{ cuota.name }}</h2>
+        <p class="text-muted mb-0">{{ cuota.date|date:"d \d\e F \d\e Y" }} — ${{ cuota.amount }} por alumno</p>
+    </div>
+    <div class="col-auto d-flex gap-3">
+        <div class="card border-0 bg-success text-white px-3 py-2 text-center shadow-sm">
+            <div class="fs-5 fw-bold">{{ cuota.total_recaudado }}</div>
+            <div class="small">Recaudado</div>
+        </div>
+        <div class="card border-0 bg-warning text-dark px-3 py-2 text-center shadow-sm">
+            {% with pendientes=pagos|length %}
+            <div class="fs-5 fw-bold">
+                {% for p in pagos %}{% if not p.paid %}{% with x=1 %}{% endwith %}{% endif %}{% endfor %}
+                {{ pagos|length }}
+            </div>
+            {% endwith %}
+            <div class="small">Total alumnos</div>
+        </div>
+    </div>
+</div>
+
+{% if cuota.description %}
+<div class="alert alert-light border mb-4">{{ cuota.description }}</div>
+{% endif %}
+
+<!-- Pendientes -->
+{% with pendientes_list=pagos %}
+<div class="card shadow-sm border mb-4">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-bold">Estado de Pagos</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Alumno</th>
+                    <th>Apoderado</th>
+                    <th>Estado</th>
+                    <th>Fecha de Pago</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos %}
+                <tr class="{% if pago.paid %}table-success{% endif %}">
+                    <td class="ps-4 fw-semibold">
+                        <a href="{% url 'student_detail' pago.student.id %}" class="text-decoration-none text-dark">
+                            {{ pago.student.first_name }} {{ pago.student.last_name }}
+                        </a>
+                    </td>
+                    <td class="text-muted">
+                        {% if pago.student.parent %}
+                            {{ pago.student.parent.first_name|default:pago.student.parent.username }} {{ pago.student.parent.last_name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if pago.paid %}
+                            <span class="badge bg-success">✓ Pagado</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">
+                        {% if pago.paid_date %}{{ pago.paid_date|date:"d/m/Y H:i" }}{% else %}-{% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'toggle_pago' pago.id %}" class="d-inline">
+                            {% csrf_token %}
+                            {% if pago.paid %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Marcar Pendiente</button>
+                            {% else %}
+                            <button type="submit" class="btn btn-sm btn-success">Marcar Pagado</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">No hay alumnos registrados para esta cuota.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Detalle Apoderado | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <a href="{% url 'manage_users' %}" class="text-muted text-decoration-none small">← Volver a Usuarios y Alumnos</a>
+        <h2 class="fw-bold mt-1">
+            {{ apoderado.first_name }} {{ apoderado.last_name }}
+            <small class="text-muted fs-5 fw-normal">@{{ apoderado.username }}</small>
+        </h2>
+        <p class="text-muted mb-0">Apoderado — {{ students|length }} alumno{{ students|length|pluralize }}</p>
+    </div>
+</div>
+
+{% if students %}
+<div class="row g-4">
+    {% for student in students %}
+    <div class="col-md-6">
+        <div class="card shadow-sm border h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">{{ student.first_name }} {{ student.last_name }}</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success fs-6">${{ student.total_funds }}</span>
+                    <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-outline-primary">Ver Detalle</a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Actividad</th>
+                            <th>Fecha</th>
+                            <th>Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dist in student.distributions.all %}
+                        <tr>
+                            <td class="ps-3">{{ dist.activity.name }}</td>
+                            <td class="text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
+                            <td class="fw-semibold">${{ dist.amount }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-3 text-muted">Sin fondos asignados aún.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card shadow-sm border p-4 text-center text-muted">
+    <p class="mb-0">Este apoderado no tiene alumnos asignados.</p>
+</div>
+{% endif %}
+{% endblock %}

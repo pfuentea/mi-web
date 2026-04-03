@@ -15,7 +15,6 @@ class Student(models.Model):
 
     @property
     def total_funds(self):
-        # Calculates the total sum of funds assigned to this student
         distributions = self.distributions.all()
         return sum(dist.amount for dist in distributions) if distributions else 0
 
@@ -41,9 +40,41 @@ class FundDistribution(models.Model):
     class Meta:
         verbose_name = "Distribución de Fondo"
         verbose_name_plural = "Distribuciones de Fondos"
-        # Prevent double assignments per student per activity by default? 
-        # Actually a student might get multiple but generally we want to track by activity.
-        # Let's keep it flexible.
 
     def __str__(self):
         return f"{self.student} recibió ${self.amount} en {self.activity.name}"
+
+
+class Cuota(models.Model):
+    name = models.CharField(max_length=200, verbose_name="Nombre de la Cuota")
+    amount = models.IntegerField(verbose_name="Monto por alumno")
+    date = models.DateField(verbose_name="Fecha")
+    description = models.TextField(blank=True, verbose_name="Descripción")
+
+    class Meta:
+        verbose_name = "Cuota"
+        verbose_name_plural = "Cuotas"
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.name} ({self.date})"
+
+    @property
+    def total_recaudado(self):
+        return self.pagos.filter(paid=True).count() * self.amount
+
+
+class PagoCuota(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='pagos', verbose_name="Alumno")
+    cuota = models.ForeignKey(Cuota, on_delete=models.CASCADE, related_name='pagos', verbose_name="Cuota")
+    paid = models.BooleanField(default=False, verbose_name="Pagado")
+    paid_date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Pago")
+
+    class Meta:
+        verbose_name = "Pago de Cuota"
+        verbose_name_plural = "Pagos de Cuotas"
+        unique_together = ['student', 'cuota']
+
+    def __str__(self):
+        status = "pagó" if self.paid else "debe"
+        return f"{self.student} {status} {self.cuota.name}"

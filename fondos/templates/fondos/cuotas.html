@@ -1,0 +1,105 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Cuotas | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="fw-bold">💰 Cuotas</h2>
+        <p class="text-muted">Gestiona los cobros de cuotas y lleva el control de quién ha pagado.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <button class="btn btn-primary-custom fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#createCuotaModal">
+            + Nueva Cuota
+        </button>
+    </div>
+</div>
+
+<div class="card p-0 shadow-sm border">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-bold">Listado de Cuotas</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Fecha</th>
+                    <th>Nombre</th>
+                    <th>Monto x Alumno</th>
+                    <th>Pagaron</th>
+                    <th>Pendientes</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cuota in cuotas %}
+                <tr>
+                    <td class="ps-4 text-muted">{{ cuota.date|date:"d M Y" }}</td>
+                    <td class="fw-semibold">{{ cuota.name }}</td>
+                    <td>${{ cuota.amount }}</td>
+                    <td>
+                        <span class="badge bg-success">{{ cuota.pagados }}</span>
+                    </td>
+                    <td>
+                        {% if cuota.pendientes > 0 %}
+                            <span class="badge bg-warning text-dark">{{ cuota.pendientes }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'cuota_detail' cuota.id %}" class="btn btn-sm btn-outline-primary fw-bold">
+                            Ver Pagos
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No hay cuotas creadas aún.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nueva Cuota -->
+<div class="modal fade" id="createCuotaModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Crear Cuota</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+          <div class="modal-body">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nombre de la Cuota</label>
+                    <input type="text" name="name" class="form-control" placeholder="Ej. Cuota Marzo 2025" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Monto por Alumno</label>
+                    <input type="number" name="amount" class="form-control" min="1" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Fecha</label>
+                    <input type="date" name="date" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Descripción (Opcional)</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="alert alert-info small mb-0">
+                    Al crear la cuota se generará automáticamente un registro de pago para cada alumno.
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary-custom">Crear Cuota</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

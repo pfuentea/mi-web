@@ -26,6 +26,7 @@
                         <tr>
                             <th class="ps-3">Usuario</th>
                             <th>Nombre Completo</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -33,10 +34,54 @@
                         <tr>
                             <td class="ps-3 fw-semibold">{{ u.username }}</td>
                             <td>{{ u.first_name }} {{ u.last_name }}</td>
+                            <td>
+                                <a href="{% url 'apoderado_detail' u.id %}" class="btn btn-sm btn-outline-primary">Ver</a>
+                                <button class="btn btn-sm btn-outline-secondary ms-1" data-bs-toggle="modal" data-bs-target="#editParentModal{{ u.id }}">
+                                    Editar
+                                </button>
+                            </td>
                         </tr>
+                        <!-- Modal Editar Apoderado -->
+                        <div class="modal fade" id="editParentModal{{ u.id }}" tabindex="-1">
+                          <div class="modal-dialog">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title fw-bold">Editar Apoderado</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                              </div>
+                              <form method="post" action="{% url 'edit_user' u.id %}">
+                                  <div class="modal-body">
+                                      {% csrf_token %}
+                                      <div class="mb-3">
+                                          <label class="form-label fw-semibold">Nombre de Usuario</label>
+                                          <input type="text" name="username" class="form-control" value="{{ u.username }}" required>
+                                      </div>
+                                      <div class="row">
+                                          <div class="col-md-6 mb-3">
+                                              <label class="form-label fw-semibold">Nombre</label>
+                                              <input type="text" name="first_name" class="form-control" value="{{ u.first_name }}">
+                                          </div>
+                                          <div class="col-md-6 mb-3">
+                                              <label class="form-label fw-semibold">Apellido</label>
+                                              <input type="text" name="last_name" class="form-control" value="{{ u.last_name }}">
+                                          </div>
+                                      </div>
+                                      <div class="mb-3">
+                                          <label class="form-label fw-semibold">Nueva Contraseña <span class="text-muted fw-normal">(dejar vacío para no cambiar)</span></label>
+                                          <input type="password" name="password" class="form-control">
+                                      </div>
+                                  </div>
+                                  <div class="modal-footer">
+                                      <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                                      <button type="submit" class="btn btn-primary-custom">Guardar Cambios</button>
+                                  </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
                         {% empty %}
                         <tr>
-                            <td colspan="2" class="text-center py-3 text-muted">Aún no hay apoderados registrados.</td>
+                            <td colspan="3" class="text-center py-3 text-muted">Aún no hay apoderados registrados.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -60,17 +105,73 @@
                         <tr>
                             <th class="ps-3">Nombre</th>
                             <th>Apoderado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for student in students %}
                         <tr>
                             <td class="ps-3 fw-semibold">{{ student.first_name }} {{ student.last_name }}</td>
-                            <td>{{ student.parent.username|default:"- No Asignado -" }}</td>
+                            <td>
+                                {% if student.parent %}
+                                    <a href="{% url 'apoderado_detail' student.parent.id %}" class="text-decoration-none">
+                                        {{ student.parent.first_name|default:student.parent.username }} {{ student.parent.last_name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">- No Asignado -</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-outline-primary">Ver</a>
+                                <button class="btn btn-sm btn-outline-secondary ms-1" data-bs-toggle="modal" data-bs-target="#editStudentModal{{ student.id }}">
+                                    Editar
+                                </button>
+                            </td>
                         </tr>
+                        <!-- Modal Editar Alumno -->
+                        <div class="modal fade" id="editStudentModal{{ student.id }}" tabindex="-1">
+                          <div class="modal-dialog">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title fw-bold">Editar Alumno</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                              </div>
+                              <form method="post" action="{% url 'edit_student' student.id %}">
+                                  <div class="modal-body">
+                                      {% csrf_token %}
+                                      <div class="row">
+                                          <div class="col-md-6 mb-3">
+                                              <label class="form-label fw-semibold">Nombre</label>
+                                              <input type="text" name="first_name" class="form-control" value="{{ student.first_name }}" required>
+                                          </div>
+                                          <div class="col-md-6 mb-3">
+                                              <label class="form-label fw-semibold">Apellido</label>
+                                              <input type="text" name="last_name" class="form-control" value="{{ student.last_name }}" required>
+                                          </div>
+                                      </div>
+                                      <div class="mb-3">
+                                          <label class="form-label fw-semibold">Apoderado</label>
+                                          <select name="parent_id" class="form-select">
+                                              <option value="">- Sin apoderado asignado -</option>
+                                              {% for u in users %}
+                                              <option value="{{ u.id }}" {% if student.parent_id == u.id %}selected{% endif %}>
+                                                  {{ u.username }}{% if u.first_name %} ({{ u.first_name }} {{ u.last_name }}){% endif %}
+                                              </option>
+                                              {% endfor %}
+                                          </select>
+                                      </div>
+                                  </div>
+                                  <div class="modal-footer">
+                                      <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                                      <button type="submit" class="btn btn-primary-custom">Guardar Cambios</button>
+                                  </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
                         {% empty %}
                         <tr>
-                            <td colspan="2" class="text-center py-3 text-muted">Aún no hay alumnos registrados.</td>
+                            <td colspan="3" class="text-center py-3 text-muted">Aún no hay alumnos registrados.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -80,7 +181,7 @@
     </div>
 </div>
 
-<!-- Modal Create Parent -->
+<!-- Modal Crear Apoderado -->
 <div class="modal fade" id="createParentModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -120,7 +221,7 @@
   </div>
 </div>
 
-<!-- Modal Create Student -->
+<!-- Modal Crear Alumno -->
 <div class="modal fade" id="createStudentModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
