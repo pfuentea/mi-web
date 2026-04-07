@@ -80,7 +80,7 @@
                 <tr class="{% if pago.paid %}table-success{% endif %}">
                     <td class="ps-4 fw-semibold">
                         <a href="{% url 'student_detail' pago.student.id %}" class="text-decoration-none text-dark">
-                            {{ pago.student.first_name }} {{ pago.student.last_name }}
+                            {{ pago.student.last_name }} {{ pago.student.first_name }}
                         </a>
                     </td>
                     <td class="text-muted">
@@ -135,7 +135,7 @@
       <form method="post" action="{% url 'toggle_pago' pago.id %}">
         <div class="modal-body">
           {% csrf_token %}
-          <p class="mb-2 small fw-semibold">{{ pago.student.first_name }} {{ pago.student.last_name }}</p>
+          <p class="mb-2 small fw-semibold">{{ pago.student.last_name }} {{ pago.student.first_name }}</p>
           <label class="form-label fw-semibold">Fecha de pago</label>
           <input type="date" name="paid_date" class="form-control" value="{{ today }}" required>
         </div>

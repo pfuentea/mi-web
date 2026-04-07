@@ -11,10 +11,37 @@ from django.contrib import messages
 @login_required
 def dashboard(request):
     if request.user.is_staff:
-        return redirect('admin_dashboard')
+        return redirect('admin_home')
     students = Student.objects.filter(parent=request.user)
     context = {'students': students}
     return render(request, 'fondos/dashboard.html', context)
+
+@staff_member_required
+def admin_home(request):
+    from django.db.models import Sum, F
+    alumnos = Student.objects.count()
+    apoderados = User.objects.filter(is_staff=False).count()
+    actividades = Activity.objects.count()
+    cuotas = Cuota.objects.count()
+    cuotas_pagadas = PagoCuota.objects.filter(paid=True).count()
+    cuotas_pendientes = PagoCuota.objects.filter(paid=False).count()
+
+    total_dist = FundDistribution.objects.aggregate(t=Sum('amount'))['t'] or 0
+    total_cuotas_pagadas = PagoCuota.objects.filter(paid=True).annotate(
+        monto=F('cuota__amount')
+    ).aggregate(t=Sum('monto'))['t'] or 0
+    monto_promedio = (total_dist + total_cuotas_pagadas) // alumnos if alumnos else 0
+
+    context = {
+        'alumnos': alumnos,
+        'apoderados': apoderados,
+        'actividades': actividades,
+        'cuotas': cuotas,
+        'cuotas_pagadas': cuotas_pagadas,
+        'cuotas_pendientes': cuotas_pendientes,
+        'monto_promedio': monto_promedio,
+    }
+    return render(request, 'fondos/admin_home.html', context)
 
 @staff_member_required
 def admin_dashboard(request):

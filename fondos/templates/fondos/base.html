@@ -30,10 +30,13 @@
                     {% if user.is_authenticated %}
                         {% if user.is_staff %}
                         <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_home' %}">Inicio</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{% url 'manage_users' %}">Usuarios y Alumnos</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin_dashboard' %}">Panel Administrador</a>
+                            <a class="nav-link" href="{% url 'admin_dashboard' %}">Actividades</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'cuotas_list' %}">Cuotas</a>

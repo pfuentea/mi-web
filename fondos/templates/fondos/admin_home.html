@@ -1,0 +1,71 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Inicio | Fondos Curso{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">Resumen del Sistema</h2>
+        <p class="text-muted">Bienvenido, {{ user.first_name|default:user.username }}.</p>
+    </div>
+</div>
+
+<!-- Fila 1: Conteos principales -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <a href="{% url 'manage_users' %}" class="text-decoration-none">
+            <div class="card shadow-sm border text-center py-4 h-100">
+                <div class="display-5 fw-bold text-primary-custom">{{ apoderados }}</div>
+                <div class="text-muted mt-1">Apoderados</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{% url 'manage_users' %}" class="text-decoration-none">
+            <div class="card shadow-sm border text-center py-4 h-100">
+                <div class="display-5 fw-bold text-primary-custom">{{ alumnos }}</div>
+                <div class="text-muted mt-1">Alumnos</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{% url 'admin_dashboard' %}" class="text-decoration-none">
+            <div class="card shadow-sm border text-center py-4 h-100">
+                <div class="display-5 fw-bold text-primary-custom">{{ actividades }}</div>
+                <div class="text-muted mt-1">Actividades</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{% url 'cuotas_list' %}" class="text-decoration-none">
+            <div class="card shadow-sm border text-center py-4 h-100">
+                <div class="display-5 fw-bold text-primary-custom">{{ cuotas }}</div>
+                <div class="text-muted mt-1">Cuotas</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Fila 2: Cuotas y monto promedio -->
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm border text-center py-4 h-100">
+            <div class="display-5 fw-bold text-success">{{ cuotas_pagadas }}</div>
+            <div class="text-muted mt-1">Cuotas Pagadas</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border text-center py-4 h-100">
+            <div class="display-5 fw-bold text-warning">{{ cuotas_pendientes }}</div>
+            <div class="text-muted mt-1">Cuotas Pendientes</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border text-center py-4 h-100">
+            <div class="display-5 fw-bold text-primary-custom">${{ monto_promedio }}</div>
+            <div class="text-muted mt-1">Promedio por Alumno</div>
+            <div class="small text-muted">(actividades + cuotas pagadas)</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -46,7 +46,7 @@
             <tbody>
                 {% for dist in existing_distributions %}
                 <tr>
-                    <td class="ps-4 fw-semibold">{{ dist.student.first_name }} {{ dist.student.last_name }}</td>
+                    <td class="ps-4 fw-semibold">{{ dist.student.last_name }} {{ dist.student.first_name }}</td>
                     <td>{{ dist.student.parent.first_name|default:dist.student.parent.username|default:"- Sin Asignar -" }} {{ dist.student.parent.last_name|default:"" }}</td>
                     <td class="text-end pe-4 fw-bold text-success">${{ dist.amount }}</td>
                     <td class="text-end pe-4">
@@ -183,7 +183,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {{ student.first_name }} {{ student.last_name }}
+                                {{ student.last_name }} {{ student.first_name }}
                                 {% if student.id in distributed_ids %}<span class="badge bg-secondary ms-1">Ya recibió</span>{% endif %}
                             </td>
                             <td>{{ student.parent.first_name|default:student.parent.username|default:"- Sin Asignar -" }} {{ student.parent.last_name|default:"" }}</td>
