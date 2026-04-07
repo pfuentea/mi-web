@@ -30,13 +30,13 @@
                     <th class="ps-4">
                         <a href="?sort=name&order={% if sort_by == 'name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                            class="text-decoration-none text-dark fw-semibold">
-                            Alumno {% if sort_by == 'name' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                            Alumno {% if sort_by == 'name' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
                         </a>
                     </th>
                     <th>
                         <a href="?sort=parent&order={% if sort_by == 'parent' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                            class="text-decoration-none text-dark fw-semibold">
-                            Apoderado {% if sort_by == 'parent' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                            Apoderado {% if sort_by == 'parent' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
                         </a>
                     </th>
                     <th class="text-end pe-4">Monto Asignado</th>
@@ -129,11 +129,11 @@
             <span class="text-muted small align-self-center">Ordenar por:</span>
             <a href="?sort=name&order={% if sort_by == 'name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                class="btn btn-sm {% if sort_by == 'name' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                Nombre {% if sort_by == 'name' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                Nombre {% if sort_by == 'name' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
             </a>
             <a href="?sort=parent&order={% if sort_by == 'parent' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                class="btn btn-sm {% if sort_by == 'parent' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                Apoderado {% if sort_by == 'parent' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                Apoderado {% if sort_by == 'parent' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
             </a>
         </div>
     </div>

@@ -51,15 +51,15 @@
                 <span class="text-muted small ms-2">Ordenar:</span>
                 <a href="?filter={{ filter_status }}&sort=name&order={% if sort_by == 'name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                    class="btn btn-sm {% if sort_by == 'name' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                    Nombre {% if sort_by == 'name' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                    Nombre {% if sort_by == 'name' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
                 </a>
                 <a href="?filter={{ filter_status }}&sort=status&order={% if sort_by == 'status' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                    class="btn btn-sm {% if sort_by == 'status' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                    Estado {% if sort_by == 'status' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                    Estado {% if sort_by == 'status' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
                 </a>
                 <a href="?filter={{ filter_status }}&sort=date&order={% if sort_by == 'date' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
                    class="btn btn-sm {% if sort_by == 'date' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                    Fecha pago {% if sort_by == 'date' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                    Fecha pago {% if sort_by == 'date' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
                 </a>
             </div>
         </div>
