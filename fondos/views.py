@@ -103,7 +103,8 @@ def manage_users(request):
                 if User.objects.filter(username=username).exists():
                     messages.error(request, 'Ese nombre de usuario ya existe.')
                 else:
-                    User.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
+                    email = request.POST.get('email', '')
+                    User.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email)
                     messages.success(request, f'Apoderado {username} creado exitosamente.')
             else:
                 messages.error(request, 'Usuario y contraseña son requeridos.')
@@ -138,6 +139,7 @@ def edit_user(request, user_id):
             apoderado.username = new_username
         apoderado.first_name = request.POST.get('first_name', apoderado.first_name)
         apoderado.last_name = request.POST.get('last_name', apoderado.last_name)
+        apoderado.email = request.POST.get('email', apoderado.email)
         new_password = request.POST.get('password', '').strip()
         if new_password:
             apoderado.set_password(new_password)
