@@ -16,13 +16,13 @@
         </div>
         <div class="card border-0 bg-secondary text-white px-3 py-2 text-center shadow-sm">
             <div class="fs-5 fw-bold">{{ pagos|length }}</div>
-            <div class="small">Total alumnos</div>
+            <div class="small">{% if filter_status == 'paid' %}Pagados{% elif filter_status == 'pending' %}Pendientes{% else %}Total{% endif %}</div>
         </div>
         {% if alumnos_faltantes > 0 %}
         <form method="post" action="{% url 'sync_cuota_students' cuota.id %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-warning fw-bold">
-                + Agregar {{ alumnos_faltantes }} alumno{{ alumnos_faltantes|pluralize }} nuevo{{ alumnos_faltantes|pluralize }}
+                + {{ alumnos_faltantes }} alumno{{ alumnos_faltantes|pluralize }} nuevo{{ alumnos_faltantes|pluralize }}
             </button>
         </form>
         {% endif %}
@@ -33,11 +33,36 @@
 <div class="alert alert-light border mb-4">{{ cuota.description }}</div>
 {% endif %}
 
-<!-- Pendientes -->
-{% with pendientes_list=pagos %}
-<div class="card shadow-sm border mb-4">
+<div class="card shadow-sm border">
     <div class="card-header bg-white border-bottom py-3">
-        <h5 class="mb-0 fw-bold">Estado de Pagos</h5>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0 fw-bold">Estado de Pagos</h5>
+
+            <!-- Filtros -->
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <span class="text-muted small">Filtrar:</span>
+                <a href="?filter=all&sort={{ sort_by }}&order={{ sort_order }}"
+                   class="btn btn-sm {% if filter_status == 'all' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">Todos</a>
+                <a href="?filter=pending&sort={{ sort_by }}&order={{ sort_order }}"
+                   class="btn btn-sm {% if filter_status == 'pending' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Pendientes</a>
+                <a href="?filter=paid&sort={{ sort_by }}&order={{ sort_order }}"
+                   class="btn btn-sm {% if filter_status == 'paid' %}btn-success{% else %}btn-outline-secondary{% endif %}">Pagados</a>
+
+                <span class="text-muted small ms-2">Ordenar:</span>
+                <a href="?filter={{ filter_status }}&sort=name&order={% if sort_by == 'name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
+                   class="btn btn-sm {% if sort_by == 'name' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
+                    Nombre {% if sort_by == 'name' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                </a>
+                <a href="?filter={{ filter_status }}&sort=status&order={% if sort_by == 'status' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
+                   class="btn btn-sm {% if sort_by == 'status' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
+                    Estado {% if sort_by == 'status' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                </a>
+                <a href="?filter={{ filter_status }}&sort=date&order={% if sort_by == 'date' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
+                   class="btn btn-sm {% if sort_by == 'date' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
+                    Fecha pago {% if sort_by == 'date' %}{{ sort_order == 'asc'|yesno:'↑,↓' }}{% endif %}
+                </a>
+            </div>
+        </div>
     </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -61,13 +86,11 @@
                     <td class="text-muted">
                         {% if pago.student.parent %}
                             {{ pago.student.parent.first_name|default:pago.student.parent.username }} {{ pago.student.parent.last_name }}
-                        {% else %}
-                            -
-                        {% endif %}
+                        {% else %}-{% endif %}
                     </td>
                     <td>
                         {% if pago.paid %}
-                            <span class="badge bg-success">✓ Pagado</span>
+                            <span class="badge bg-success">Pagado</span>
                         {% else %}
                             <span class="badge bg-warning text-dark">Pendiente</span>
                         {% endif %}
@@ -88,12 +111,11 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">No hay alumnos registrados para esta cuota.</td>
+                    <td colspan="5" class="text-center py-4 text-muted">No hay registros para mostrar.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-{% endwith %}
 {% endblock %}

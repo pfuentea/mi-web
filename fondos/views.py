@@ -41,7 +41,16 @@ def admin_dashboard(request):
 @staff_member_required
 def distribute_funds(request, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
-    students = Student.objects.all().order_by('first_name', 'last_name')
+    sort_by = request.GET.get('sort', 'name')
+    sort_order = request.GET.get('order', 'asc')
+    if sort_by == 'parent':
+        students = Student.objects.all().order_by(
+            ('parent__last_name' if sort_order == 'asc' else '-parent__last_name')
+        )
+    else:
+        students = Student.objects.all().order_by(
+            ('last_name' if sort_order == 'asc' else '-last_name'), 'first_name'
+        )
 
     if request.method == 'POST':
         selected_students_ids = request.POST.getlist('students')
@@ -78,7 +87,7 @@ def distribute_funds(request, activity_id):
 
         return redirect('admin_dashboard')
 
-    existing_distributions = FundDistribution.objects.filter(activity=activity)
+    existing_distributions = FundDistribution.objects.filter(activity=activity).select_related('student__parent')
     distributed_ids = existing_distributions.values_list('student_id', flat=True)
 
     context = {
@@ -86,6 +95,8 @@ def distribute_funds(request, activity_id):
         'students': students,
         'existing_distributions': existing_distributions,
         'distributed_ids': distributed_ids,
+        'sort_by': sort_by,
+        'sort_order': sort_order,
     }
     return render(request, 'fondos/distribute_funds.html', context)
 
@@ -237,10 +248,32 @@ def edit_cuota(request, cuota_id):
 @staff_member_required
 def cuota_detail(request, cuota_id):
     cuota = get_object_or_404(Cuota, id=cuota_id)
-    pagos = PagoCuota.objects.filter(cuota=cuota).select_related('student__parent').order_by('paid', 'student__last_name')
+    filter_status = request.GET.get('filter', 'all')
+    sort_by = request.GET.get('sort', 'name')
+    sort_order = request.GET.get('order', 'asc')
+
+    pagos = PagoCuota.objects.filter(cuota=cuota).select_related('student__parent')
+
+    if filter_status == 'paid':
+        pagos = pagos.filter(paid=True)
+    elif filter_status == 'pending':
+        pagos = pagos.filter(paid=False)
+
+    if sort_by == 'status':
+        pagos = pagos.order_by(('paid' if sort_order == 'asc' else '-paid'), 'student__last_name')
+    elif sort_by == 'date':
+        pagos = pagos.order_by(('paid_date' if sort_order == 'asc' else '-paid_date'))
+    else:  # name
+        pagos = pagos.order_by(('student__last_name' if sort_order == 'asc' else '-student__last_name'))
+
     existing_ids = cuota.pagos.values_list('student_id', flat=True)
     alumnos_faltantes = Student.objects.exclude(id__in=existing_ids).count()
-    context = {'cuota': cuota, 'pagos': pagos, 'alumnos_faltantes': alumnos_faltantes}
+    context = {
+        'cuota': cuota, 'pagos': pagos,
+        'alumnos_faltantes': alumnos_faltantes,
+        'filter_status': filter_status,
+        'sort_by': sort_by, 'sort_order': sort_order,
+    }
     return render(request, 'fondos/cuota_detail.html', context)
 
 @staff_member_required
@@ -251,6 +284,24 @@ def toggle_pago(request, pago_id):
         pago.paid_date = timezone.now() if pago.paid else None
         pago.save()
     return redirect('cuota_detail', cuota_id=pago.cuota.id)
+
+@staff_member_required
+def delete_activity(request, activity_id):
+    activity = get_object_or_404(Activity, id=activity_id)
+    if request.method == 'POST':
+        name = activity.name
+        activity.delete()
+        messages.success(request, f'Actividad "{name}" eliminada.')
+    return redirect('admin_dashboard')
+
+@staff_member_required
+def clear_distributions(request, activity_id):
+    activity = get_object_or_404(Activity, id=activity_id)
+    if request.method == 'POST':
+        count = activity.distributions.count()
+        activity.distributions.all().delete()
+        messages.success(request, f'{count} distribución(es) eliminadas. Puedes volver a repartir.')
+    return redirect('distribute_funds', activity_id=activity_id)
 
 @staff_member_required
 def edit_activity(request, activity_id):

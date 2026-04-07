@@ -37,9 +37,7 @@
                     <td class="ps-4 text-muted">{{ activity.date|date:"d M Y" }}</td>
                     <td class="fw-semibold">{{ activity.name }}</td>
                     <td>${{ activity.total_amount }}</td>
-                    <td>
-                        <span class="badge bg-success">${{ activity.monto_repartido }}</span>
-                    </td>
+                    <td><span class="badge bg-success">${{ activity.monto_repartido }}</span></td>
                     <td>
                         {% if activity.queda_por_repartir > 0 %}
                             <span class="badge bg-warning text-dark">${{ activity.queda_por_repartir }}</span>
@@ -51,51 +49,18 @@
                     </td>
                     <td>
                         <a href="{% url 'distribute_funds' activity.id %}" class="btn btn-sm btn-outline-primary fw-bold">
-                            Repartir / Ver Detalle
+                            Repartir / Ver
                         </a>
-                        <button class="btn btn-sm btn-outline-secondary fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#editActivityModal{{ activity.id }}">
+                        <button class="btn btn-sm btn-outline-secondary fw-bold ms-1"
+                                data-bs-toggle="modal" data-bs-target="#editActivityModal{{ activity.id }}">
                             Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger fw-bold ms-1"
+                                data-bs-toggle="modal" data-bs-target="#deleteActivityModal{{ activity.id }}">
+                            Eliminar
                         </button>
                     </td>
                 </tr>
-
-                <!-- Modal Edit Activity -->
-                <div class="modal fade" id="editActivityModal{{ activity.id }}" tabindex="-1">
-                  <div class="modal-dialog">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h5 class="modal-title fw-bold">Editar Actividad</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                      </div>
-                      <form method="post" action="{% url 'edit_activity' activity.id %}">
-                          <div class="modal-body">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Nombre de la Actividad</label>
-                                    <input type="text" name="name" class="form-control" value="{{ activity.name }}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Fecha Actual: {{ activity.date|date:"d/m/Y" }}</label>
-                                    <input type="date" name="date" class="form-control">
-                                    <div class="form-text">Si no deseas cambiarla, deja este campo vacío.</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Monto Referencial</label>
-                                    <input type="number" name="total_amount" class="form-control" value="{{ activity.total_amount }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Descripción</label>
-                                    <textarea name="description" class="form-control" rows="2">{{ activity.description }}</textarea>
-                                </div>
-                          </div>
-                          <div class="modal-footer">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary-custom">Guardar Cambios</button>
-                          </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
                 {% empty %}
                 <tr>
                     <td colspan="6" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>
@@ -106,12 +71,77 @@
     </div>
 </div>
 
-<!-- Modal Nueva Actividad -->
-<div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createActivityModalLabel" aria-hidden="true">
+<!-- ===== MODALES EDITAR ACTIVIDAD ===== -->
+{% for activity in activities %}
+<div class="modal fade" id="editActivityModal{{ activity.id }}" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title fw-bold" id="createActivityModalLabel">Crear Actividad</h5>
+        <h5 class="modal-title fw-bold">Editar Actividad</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'edit_activity' activity.id %}">
+          <div class="modal-body">
+              {% csrf_token %}
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Nombre de la Actividad</label>
+                  <input type="text" name="name" class="form-control" value="{{ activity.name }}" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Fecha Actual: {{ activity.date|date:"d/m/Y" }}</label>
+                  <input type="date" name="date" class="form-control">
+                  <div class="form-text">Si no deseas cambiarla, deja este campo vacío.</div>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Monto Referencial</label>
+                  <input type="number" name="total_amount" class="form-control" value="{{ activity.total_amount }}">
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Descripción</label>
+                  <textarea name="description" class="form-control" rows="2">{{ activity.description }}</textarea>
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary-custom">Guardar Cambios</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ===== MODALES ELIMINAR ACTIVIDAD ===== -->
+{% for activity in activities %}
+<div class="modal fade" id="deleteActivityModal{{ activity.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-danger">Eliminar Actividad</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">¿Eliminar <strong>{{ activity.name }}</strong>?</p>
+        <p class="small text-muted mb-0">Se eliminarán todas las distribuciones de fondos asociadas.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post" action="{% url 'delete_activity' activity.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Modal Nueva Actividad -->
+<div class="modal fade" id="createActivityModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Crear Actividad</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form method="post">
