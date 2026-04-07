@@ -98,15 +98,18 @@
                     <td class="text-muted small">
                         {% if pago.paid_date %}{{ pago.paid_date|date:"d/m/Y H:i" }}{% else %}-{% endif %}
                     </td>
-                    <td>
+                    <td style="white-space:nowrap">
+                        {% if pago.paid %}
                         <form method="post" action="{% url 'toggle_pago' pago.id %}" class="d-inline">
                             {% csrf_token %}
-                            {% if pago.paid %}
                             <button type="submit" class="btn btn-sm btn-outline-danger">Marcar Pendiente</button>
-                            {% else %}
-                            <button type="submit" class="btn btn-sm btn-success">Marcar Pagado</button>
-                            {% endif %}
                         </form>
+                        {% else %}
+                        <button type="button" class="btn btn-sm btn-success"
+                                data-bs-toggle="modal" data-bs-target="#pagoModal{{ pago.id }}">
+                            Marcar Pagado
+                        </button>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
@@ -118,4 +121,32 @@
         </table>
     </div>
 </div>
+
+<!-- Modales fecha de pago -->
+{% for pago in pagos %}
+{% if not pago.paid %}
+<div class="modal fade" id="pagoModal{{ pago.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold">Registrar Pago</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'toggle_pago' pago.id %}">
+        <div class="modal-body">
+          {% csrf_token %}
+          <p class="mb-2 small fw-semibold">{{ pago.student.first_name }} {{ pago.student.last_name }}</p>
+          <label class="form-label fw-semibold">Fecha de pago</label>
+          <input type="date" name="paid_date" class="form-control" value="{{ today }}" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Confirmar Pago</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %}

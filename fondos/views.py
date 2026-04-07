@@ -273,6 +273,7 @@ def cuota_detail(request, cuota_id):
         'alumnos_faltantes': alumnos_faltantes,
         'filter_status': filter_status,
         'sort_by': sort_by, 'sort_order': sort_order,
+        'today': timezone.localdate().isoformat(),
     }
     return render(request, 'fondos/cuota_detail.html', context)
 
@@ -281,7 +282,14 @@ def toggle_pago(request, pago_id):
     pago = get_object_or_404(PagoCuota, id=pago_id)
     if request.method == 'POST':
         pago.paid = not pago.paid
-        pago.paid_date = timezone.now() if pago.paid else None
+        if pago.paid:
+            from django.utils.dateparse import parse_date
+            from datetime import datetime, time
+            date_str = request.POST.get('paid_date', '').strip()
+            parsed = parse_date(date_str) if date_str else None
+            pago.paid_date = timezone.make_aware(datetime.combine(parsed, time())) if parsed else timezone.now()
+        else:
+            pago.paid_date = None
         pago.save()
     return redirect('cuota_detail', cuota_id=pago.cuota.id)
 
