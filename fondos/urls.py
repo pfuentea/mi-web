@@ -16,5 +16,7 @@ urlpatterns = [
     path('cuotas/', views.cuotas_list, name='cuotas_list'),
     path('cuotas/<int:cuota_id>/', views.cuota_detail, name='cuota_detail'),
     path('cuotas/<int:cuota_id>/editar/', views.edit_cuota, name='edit_cuota'),
+    path('cuotas/<int:cuota_id>/eliminar/', views.delete_cuota, name='delete_cuota'),
+    path('cuotas/<int:cuota_id>/sincronizar/', views.sync_cuota_students, name='sync_cuota_students'),
     path('cuotas/pago/<int:pago_id>/toggle/', views.toggle_pago, name='toggle_pago'),
 ]

@@ -198,6 +198,27 @@ def cuotas_list(request):
     return render(request, 'fondos/cuotas.html', context)
 
 @staff_member_required
+def delete_cuota(request, cuota_id):
+    cuota = get_object_or_404(Cuota, id=cuota_id)
+    if request.method == 'POST':
+        cuota.delete()
+        messages.success(request, f'Cuota "{cuota.name}" eliminada.')
+    return redirect('cuotas_list')
+
+@staff_member_required
+def sync_cuota_students(request, cuota_id):
+    cuota = get_object_or_404(Cuota, id=cuota_id)
+    if request.method == 'POST':
+        existing_ids = cuota.pagos.values_list('student_id', flat=True)
+        missing = Student.objects.exclude(id__in=existing_ids)
+        PagoCuota.objects.bulk_create([PagoCuota(student=s, cuota=cuota) for s in missing])
+        if missing:
+            messages.success(request, f'{missing.count()} alumno(s) agregado(s) a la cuota.')
+        else:
+            messages.info(request, 'Todos los alumnos ya estaban en la cuota.')
+    return redirect('cuota_detail', cuota_id=cuota_id)
+
+@staff_member_required
 def edit_cuota(request, cuota_id):
     cuota = get_object_or_404(Cuota, id=cuota_id)
     if request.method == 'POST':
@@ -217,7 +238,9 @@ def edit_cuota(request, cuota_id):
 def cuota_detail(request, cuota_id):
     cuota = get_object_or_404(Cuota, id=cuota_id)
     pagos = PagoCuota.objects.filter(cuota=cuota).select_related('student__parent').order_by('paid', 'student__last_name')
-    context = {'cuota': cuota, 'pagos': pagos}
+    existing_ids = cuota.pagos.values_list('student_id', flat=True)
+    alumnos_faltantes = Student.objects.exclude(id__in=existing_ids).count()
+    context = {'cuota': cuota, 'pagos': pagos, 'alumnos_faltantes': alumnos_faltantes}
     return render(request, 'fondos/cuota_detail.html', context)
 
 @staff_member_required
