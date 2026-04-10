@@ -2,13 +2,21 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('registro/', views.registro, name='registro'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('cursos/', views.select_curso, name='select_curso'),
+    path('cursos/editar/', views.edit_curso, name='edit_curso'),
+    path('cursos/cambiar/<int:curso_id>/', views.switch_curso, name='switch_curso'),
     path('inicio/', views.admin_home, name='admin_home'),
     path('admin-usuarios/', views.manage_users, name='manage_users'),
     path('admin-usuarios/editar-apoderado/<int:user_id>/', views.edit_user, name='edit_user'),
     path('admin-usuarios/editar-alumno/<int:student_id>/', views.edit_student, name='edit_student'),
     path('admin-usuarios/apoderado/<int:user_id>/', views.apoderado_detail, name='apoderado_detail'),
     path('admin-usuarios/alumno/<int:student_id>/', views.student_detail, name='student_detail'),
+    path('admin-usuarios/gestor/remover/<int:membresia_id>/', views.remove_gestor, name='remove_gestor'),
+    path('admin-usuarios/gestor/promover/<int:user_id>/', views.promote_to_tesorero, name='promote_to_tesorero'),
+    path('admin-usuarios/gestor/revocar/<int:membresia_id>/', views.revoke_to_apoderado, name='revoke_to_apoderado'),
+    path('admin-usuarios/reporte/', views.reporte_apoderados, name='reporte_apoderados'),
     path('admin-actividades/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-actividades/editar/<int:activity_id>/', views.edit_activity, name='edit_activity'),
     path('admin-actividades/eliminar/<int:activity_id>/', views.delete_activity, name='delete_activity'),
@@ -22,4 +30,6 @@ urlpatterns = [
     path('cuotas/<int:cuota_id>/eliminar/', views.delete_cuota, name='delete_cuota'),
     path('cuotas/<int:cuota_id>/sincronizar/', views.sync_cuota_students, name='sync_cuota_students'),
     path('cuotas/pago/<int:pago_id>/toggle/', views.toggle_pago, name='toggle_pago'),
+    path('reportes/', views.reportes, name='reportes'),
+    path('reportes/generar/', views.generar_reporte, name='generar_reporte'),
 ]

@@ -1,0 +1,176 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Reportes | Mis Cuotas{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold">Reportes</h2>
+        <p class="text-muted mb-0">
+            {% if curso %}
+                <span class="badge bg-primary me-1">{{ curso.name }}</span>
+                {% if curso.tipo == 'AVANZADO' %}
+                    <span class="badge bg-success">Plan Avanzado</span>
+                {% else %}
+                    <span class="badge bg-secondary">Plan Normal</span>
+                {% endif %}
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+{% if curso.tipo == 'AVANZADO' %}
+
+<!-- ===== PLAN AVANZADO: Generador de reportes ===== -->
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm border p-4">
+            <h5 class="fw-bold mb-1">Generar Reporte Excel</h5>
+            <p class="text-muted small mb-4">Selecciona el tipo de reporte que quieres exportar. El archivo se descargará automáticamente.</p>
+
+            <form method="post" action="{% url 'generar_reporte' %}" id="reporteForm">
+                {% csrf_token %}
+                <input type="hidden" name="formato" id="formatoInput" value="excel">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Tipo de Reporte</label>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <input type="radio" class="btn-check" name="tipo_reporte" id="rep_actividades" value="actividades" checked>
+                            <label class="btn btn-outline-primary w-100 text-start py-3 px-3" for="rep_actividades">
+                                <div class="fw-semibold">Actividades</div>
+                                <div class="small text-muted">Detalle de fondos repartidos por actividad y alumno.</div>
+                            </label>
+                        </div>
+                        <div class="col-sm-6">
+                            <input type="radio" class="btn-check" name="tipo_reporte" id="rep_cuotas" value="cuotas">
+                            <label class="btn btn-outline-primary w-100 text-start py-3 px-3" for="rep_cuotas">
+                                <div class="fw-semibold">Cuotas</div>
+                                <div class="small text-muted">Estado de pago de cada alumno por cuota (pagado / pendiente).</div>
+                            </label>
+                        </div>
+                        <div class="col-sm-6">
+                            <input type="radio" class="btn-check" name="tipo_reporte" id="rep_ambos" value="ambos">
+                            <label class="btn btn-outline-primary w-100 text-start py-3 px-3" for="rep_ambos">
+                                <div class="fw-semibold">Actividades + Cuotas</div>
+                                <div class="small text-muted">Ambos reportes en el mismo archivo, en hojas separadas.</div>
+                            </label>
+                        </div>
+                        <div class="col-sm-6">
+                            <input type="radio" class="btn-check" name="tipo_reporte" id="rep_resumen" value="resumen">
+                            <label class="btn btn-outline-primary w-100 text-start py-3 px-3" for="rep_resumen">
+                                <div class="fw-semibold">Resumen General</div>
+                                <div class="small text-muted">Total de fondos acumulados por alumno (actividades + cuotas pagadas).</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-primary-custom fw-bold px-4"
+                            onclick="document.getElementById('formatoInput').value='excel'; document.getElementById('reporteForm').submit();">
+                        Descargar Excel
+                    </button>
+                    <button type="button" class="btn btn-outline-danger fw-bold px-4"
+                            onclick="document.getElementById('formatoInput').value='pdf'; document.getElementById('reporteForm').submit();">
+                        Descargar PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border p-4 h-100">
+            <h6 class="fw-bold mb-3">¿Qué incluye cada reporte?</h6>
+            <ul class="list-unstyled small text-muted mb-0">
+                <li class="mb-3">
+                    <span class="fw-semibold text-dark">Actividades</span><br>
+                    Por cada actividad: nombre del alumno, apoderado y monto asignado. Total repartido al final.
+                </li>
+                <li class="mb-3">
+                    <span class="fw-semibold text-dark">Cuotas</span><br>
+                    Por cada cuota: estado de pago de cada alumno con fecha de pago. Resumen de pagados y pendientes.
+                </li>
+                <li class="mb-3">
+                    <span class="fw-semibold text-dark">Actividades + Cuotas</span><br>
+                    Ambos reportes en un solo archivo con hojas separadas.
+                </li>
+                <li>
+                    <span class="fw-semibold text-dark">Resumen General</span><br>
+                    Vista consolidada: total de fondos por alumno sumando actividades y cuotas pagadas.
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% else %}
+
+<!-- ===== PLAN NORMAL: Página de upgrade ===== -->
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border p-4 mb-4">
+            <h5 class="fw-bold mb-1">Reportes disponibles con el Plan Avanzado</h5>
+            <p class="text-muted small mb-4">Actualiza tu plan para acceder a la exportación de reportes detallados en Excel.</p>
+
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="fw-semibold mb-1">Reporte de Actividades</div>
+                        <div class="small text-muted">Detalle por actividad de cómo se repartieron los fondos entre los alumnos del curso.</div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="fw-semibold mb-1">Reporte de Cuotas</div>
+                        <div class="small text-muted">Estado de pago de cada alumno por cuota, con colores para pendientes y pagados.</div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="fw-semibold mb-1">Actividades + Cuotas</div>
+                        <div class="small text-muted">Ambos reportes en un solo archivo Excel, en hojas separadas.</div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="fw-semibold mb-1">Resumen General</div>
+                        <div class="small text-muted">Total de fondos acumulados por alumno: suma de actividades y cuotas pagadas.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mb-0 small">
+                Los reportes se exportan como archivos <strong>Excel (.xlsx)</strong> o <strong>PDF</strong>, listos para compartir o imprimir.
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm border p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <span class="badge bg-warning text-dark mb-3">Plan Avanzado</span>
+                <h5 class="fw-bold mb-2">¿Cómo activar esta función?</h5>
+                <p class="text-muted small mb-3">
+                    Los reportes y exportaciones son una función del <strong>Plan Avanzado</strong>.
+                    Para habilitarlos en tu curso, contacta al administrador de la aplicación.
+                </p>
+                <ul class="small text-muted ps-3 mb-4">
+                    <li>Exportación a Excel y PDF con formato y colores</li>
+                    <li>Reportes de actividades, cuotas y resumen general</li>
+                    <li>Acceso inmediato tras la activación</li>
+                </ul>
+            </div>
+            <div>
+                <a href="mailto:admin@miscuotas.cl" class="btn btn-primary-custom fw-bold w-100">
+                    Contactar al Administrador
+                </a>
+                <div class="text-center small text-muted mt-2">
+                    o escribe a <strong>admin@miscuotas.cl</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

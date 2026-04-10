@@ -1,6 +1,6 @@
 {% extends "fondos/base.html" %}
 
-{% block title %}Cuotas | Fondos Curso{% endblock %}
+{% block title %}Cuotas | Mis Cuotas{% endblock %}
 
 {% block content %}
 <div class="row mb-4 align-items-center">
@@ -12,6 +12,41 @@
         <button class="btn btn-primary-custom fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#createCuotaModal">
             + Nueva Cuota
         </button>
+    </div>
+</div>
+
+<!-- Hint: Cómo funciona -->
+<div class="mb-4">
+    <button class="btn btn-link text-muted text-decoration-none ps-0 small fw-semibold"
+            type="button" data-bs-toggle="collapse" data-bs-target="#hintCuotas">
+        ¿Cómo funciona? ▾
+    </button>
+    <div class="collapse" id="hintCuotas">
+        <div class="card border bg-light shadow-none mt-1">
+            <div class="card-body py-3 px-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 small">Para Tesoreros y Ayudantes</p>
+                        <ol class="mb-0 ps-3 small text-muted">
+                            <li>Crea una cuota con nombre, monto y fecha (ej: Cuota Marzo, $5.000, 01/03/2025).</li>
+                            <li>Al crearla se generan registros automáticos para todos los alumnos del curso.</li>
+                            <li>Entra al detalle de la cuota haciendo clic en <strong>Ver Pagos</strong>.</li>
+                            <li>Marca cada pago con el botón <strong>Marcar Pagado</strong> e ingresa la fecha en que se recibió.</li>
+                            <li>Si se incorporan nuevos alumnos después de crear la cuota, usa <strong>Sincronizar</strong> para agregarlos.</li>
+                            <li>Filtra por <em>Pendientes</em> para ver rápidamente quién debe.</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 small">Lo que ven los Apoderados</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>En su panel ven las cuotas pendientes (fondo amarillo) y las pagadas de sus hijos.</li>
+                            <li>El monto de cuotas pagadas se suma al fondo total acumulado del alumno.</li>
+                            <li>Solo pueden ver el estado, no pueden marcar pagos por su cuenta.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

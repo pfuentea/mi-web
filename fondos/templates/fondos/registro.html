@@ -1,0 +1,71 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Crear Cuenta | Fondos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card p-4 shadow-sm">
+            <h3 class="fw-bold text-primary-custom mb-1">Crear Cuenta</h3>
+            <p class="text-muted mb-4">Completa los datos para registrar tu cuenta y crear el curso que gestionarás.</p>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Sección 1: Datos de acceso -->
+                <div class="mb-4">
+                    <h5 class="fw-bold border-bottom pb-2 mb-3">Datos de Acceso</h5>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre de Usuario</label>
+                        <input type="text" name="username" class="form-control" placeholder="Ej: juan.perez" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Contraseña</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Nombre</label>
+                            <input type="text" name="first_name" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Apellido</label>
+                            <input type="text" name="last_name" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email <span class="text-muted fw-normal">(Opcional)</span></label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Sección 2: Datos del curso -->
+                <div class="mb-4">
+                    <h5 class="fw-bold border-bottom pb-2 mb-3">Curso a Gestionar</h5>
+                    <p class="text-muted small">Serás asignado como <strong>Tesorero</strong> de este curso.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre del Curso</label>
+                        <input type="text" name="curso_name" class="form-control" placeholder="Ej: 3° Básico C" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Año</label>
+                        <input type="number" name="curso_year" class="form-control" placeholder="Ej: 2025" value="2025" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción <span class="text-muted fw-normal">(Opcional)</span></label>
+                        <textarea name="curso_description" class="form-control" rows="2" placeholder="Ej: Colegio San José, Prof. Martínez"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary-custom py-2 fw-bold">Crear Cuenta y Curso</button>
+                </div>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="{% url 'login' %}" class="text-muted small">¿Ya tienes cuenta? Inicia sesión</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

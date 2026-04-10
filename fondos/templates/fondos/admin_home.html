@@ -1,13 +1,28 @@
 {% extends "fondos/base.html" %}
 
-{% block title %}Inicio | Fondos Curso{% endblock %}
+{% block title %}Inicio | Mis Cuotas{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
+<div class="row mb-4 align-items-center">
+    <div class="col">
         <h2 class="fw-bold">Resumen del Sistema</h2>
-        <p class="text-muted">Bienvenido, {{ user.first_name|default:user.username }}.</p>
+        <p class="text-muted mb-0">
+            Bienvenido, {{ user.first_name|default:user.username }}.
+            {% if current_curso %}
+                <span class="badge bg-primary ms-1">{{ current_curso }}</span>
+                {% if current_curso.description %}
+                    <span class="text-muted small ms-2">{{ current_curso.description }}</span>
+                {% endif %}
+            {% endif %}
+        </p>
     </div>
+    {% if es_principal and current_curso %}
+    <div class="col-auto">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editCursoModal">
+            Editar Curso
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Fila 1: Conteos principales -->
@@ -47,7 +62,7 @@
 </div>
 
 <!-- Fila 2: Cuotas y monto promedio -->
-<div class="row g-3">
+<div class="row g-3 mb-5">
     <div class="col-md-4">
         <div class="card shadow-sm border text-center py-4 h-100">
             <div class="display-5 fw-bold text-success">{{ cuotas_pagadas }}</div>
@@ -68,4 +83,158 @@
         </div>
     </div>
 </div>
+
+<!-- Guía Rápida -->
+<div class="row mb-2 align-items-center">
+    <div class="col">
+        <h5 class="fw-bold mb-0">Guía Rápida</h5>
+        <p class="text-muted small mb-0">¿Qué puede hacer cada perfil en esta aplicación?</p>
+    </div>
+</div>
+<div class="accordion shadow-sm" id="guiaRapida">
+
+    <!-- Tesorero / Ayudante -->
+    <div class="accordion-item border">
+        <h2 class="accordion-header">
+            <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#guia-gestor">
+                Tesorero y Ayudante
+            </button>
+        </h2>
+        <div id="guia-gestor" class="accordion-collapse collapse show" data-bs-parent="#guiaRapida">
+            <div class="accordion-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 text-primary-custom">Actividades</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>Registra actividades como kermesses, bingos o rifas.</li>
+                            <li>Ingresa el monto total recaudado y distribúyelo entre los alumnos de forma equitativa o manual.</li>
+                            <li>Edita o elimina distribuciones si hay un error.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 text-primary-custom">Cuotas</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>Crea cuotas mensuales o especiales con un monto por alumno.</li>
+                            <li>Al crearla, se generan registros automáticos para cada alumno del curso.</li>
+                            <li>Marca los pagos a medida que los recibas y registra la fecha exacta.</li>
+                            <li>Filtra por pendientes o pagados para hacer el seguimiento.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 text-primary-custom">Apoderados y Alumnos</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>Registra las cuentas de acceso para los apoderados.</li>
+                            <li>Crea y asigna alumnos a sus apoderados.</li>
+                            <li>Ve el reporte completo de fondos por apoderado.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 text-primary-custom">Roles (solo Tesorero Principal)</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>Promueve apoderados a Tesorero o Ayudante.</li>
+                            <li>Revoca el rol de Tesorero o Ayudante en cualquier momento.</li>
+                            <li>Los Tesoreros y Ayudantes tienen los mismos permisos de gestión.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apoderado -->
+    <div class="accordion-item border">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#guia-apoderado">
+                Apoderado
+            </button>
+        </h2>
+        <div id="guia-apoderado" class="accordion-collapse collapse" data-bs-parent="#guiaRapida">
+            <div class="accordion-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 text-primary-custom">Su panel personal</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>Al ingresar ve un resumen de sus hijos con el total de fondos acumulados.</li>
+                            <li>Puede ver cuánto se asignó en cada actividad.</li>
+                            <li>Ve las cuotas pagadas y las que están pendientes.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 text-primary-custom">Acceso</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>Ingresa con el usuario y contraseña que le asigne el Tesorero.</li>
+                            <li>Solo puede ver su información, no puede modificar nada.</li>
+                            <li>Si tiene más de un hijo en el curso, verá a todos en su panel.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_staff %}
+    <!-- Administrador -->
+    <div class="accordion-item border">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#guia-admin">
+                Administrador
+            </button>
+        </h2>
+        <div id="guia-admin" class="accordion-collapse collapse" data-bs-parent="#guiaRapida">
+            <div class="accordion-body small text-muted">
+                <ul class="mb-0 ps-3">
+                    <li>Puede crear y gestionar múltiples cursos desde la pantalla de selección de curso.</li>
+                    <li>Tiene acceso total a cualquier curso sin necesidad de ser miembro.</li>
+                    <li>Puede agregar o remover gestores (Tesoreros / Ayudantes) de cualquier curso.</li>
+                    <li>Usa el menú desplegable del curso en la barra de navegación para cambiar entre cursos.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% if es_principal and current_curso %}
+<div class="modal fade" id="editCursoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Editar Curso</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'edit_curso' %}">
+          <div class="modal-body">
+              {% csrf_token %}
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Nombre del Curso</label>
+                  <input type="text" name="name" class="form-control" value="{{ current_curso.name }}" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Año</label>
+                  <input type="number" name="year" class="form-control" value="{{ current_curso.year }}" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Descripción <span class="text-muted fw-normal">(Opcional)</span></label>
+                  <textarea name="description" class="form-control" rows="2">{{ current_curso.description }}</textarea>
+              </div>
+              {% if user.is_staff %}
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Tipo de Plan</label>
+                  <select name="tipo" class="form-select">
+                      <option value="NORMAL" {% if current_curso.tipo == 'NORMAL' %}selected{% endif %}>Normal</option>
+                      <option value="AVANZADO" {% if current_curso.tipo == 'AVANZADO' %}selected{% endif %}>Avanzado</option>
+                  </select>
+              </div>
+              {% endif %}
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary-custom">Guardar Cambios</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

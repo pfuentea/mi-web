@@ -4,7 +4,17 @@
       "Bash(python scripts/excel_to_csv.py --help)",
       "Bash(pip install:*)",
       "Bash(python scripts/excel_to_csv.py)",
-      "Bash(python -)"
+      "Bash(python -)",
+      "Bash(sed -i 's/{{ dist\\\\.student\\\\.first_name }} {{ dist\\\\.student\\\\.last_name }}/{{ dist.student.last_name }} {{ dist.student.first_name }}/g' fondos/templates/fondos/distribute_funds.html)",
+      "Bash(sed -i 's/{{ student\\\\.first_name }} {{ student\\\\.last_name }}/{{ student.last_name }} {{ student.first_name }}/g' fondos/templates/fondos/distribute_funds.html)",
+      "Bash(sed -i 's/{{ pago\\\\.student\\\\.first_name }} {{ pago\\\\.student\\\\.last_name }}/{{ pago.student.last_name }} {{ pago.student.first_name }}/g' fondos/templates/fondos/cuota_detail.html)",
+      "Bash(python manage.py shell -c \"from django.contrib.auth.models import User; print\\([f.name for f in User._meta.get_fields\\(\\)]\\)\")",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py check)",
+      "Bash(python manage.py shell -c ':*)",
+      "Bash(python manage.py makemigrations fondos)",
+      "Bash(python -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\")",
+      "Bash(pip show:*)"
     ]
   }
 }

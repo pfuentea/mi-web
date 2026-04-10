@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Gestión de Fondos{% endblock %}</title>
+    <title>{% block title %}Mis Cuotas{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -15,31 +15,62 @@
         .btn-primary-custom { background-color: #4f46e5; color: white; border: none; }
         .btn-primary-custom:hover { background-color: #4338ca; color: white; }
         .table-custom th { background-color: #f1f3f5; border-bottom: 2px solid #e2e8f0; }
+        .curso-badge { background-color: #4f46e5; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4 py-3">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="/">🎓 Fondos del Curso</a>
+            <a class="navbar-brand fw-bold" href="/">Mis Cuotas</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
-                        {% if user.is_staff %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin_home' %}">Inicio</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'manage_users' %}">Usuarios y Alumnos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin_dashboard' %}">Actividades</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'cuotas_list' %}">Cuotas</a>
-                        </li>
+                        {% if puede_gestionar %}
+                            <!-- Selector de curso -->
+                            {% if current_curso %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="curso-badge">{{ current_curso.name }}</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {% for c in user_cursos %}
+                                    <li>
+                                        <a class="dropdown-item {% if c.id == current_curso.id %}active{% endif %}"
+                                           href="{% url 'switch_curso' c.id %}">
+                                            {{ c }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                    {% if user.is_staff %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'select_curso' %}">+ Nuevo Curso</a></li>
+                                    {% endif %}
+                                </ul>
+                            </li>
+                            {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'select_curso' %}">Seleccionar Curso</a>
+                            </li>
+                            {% endif %}
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'admin_home' %}">Inicio</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'manage_users' %}">Apoderados y Alumnos</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'admin_dashboard' %}">Actividades</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'cuotas_list' %}">Cuotas</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'reportes' %}">Reportes</a>
+                            </li>
                         {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'dashboard' %}">Mi Panel</a>
@@ -65,10 +96,10 @@
                 </div>
             {% endfor %}
         {% endif %}
-        
+
         {% block content %}{% endblock %}
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block scripts %}{% endblock %}
 </body>

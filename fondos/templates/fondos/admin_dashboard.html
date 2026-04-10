@@ -1,6 +1,6 @@
 {% extends "fondos/base.html" %}
 
-{% block title %}Panel de Administrador | Fondos Curso{% endblock %}
+{% block title %}Panel de Administrador | Mis Cuotas{% endblock %}
 
 {% block content %}
 <div class="row mb-4 align-items-center">
@@ -12,6 +12,40 @@
         <button class="btn btn-primary-custom fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#createActivityModal">
             + Nueva Actividad
         </button>
+    </div>
+</div>
+
+<!-- Hint: Cómo funciona -->
+<div class="mb-4">
+    <button class="btn btn-link text-muted text-decoration-none ps-0 small fw-semibold"
+            type="button" data-bs-toggle="collapse" data-bs-target="#hintActividades">
+        ¿Cómo funciona? ▾
+    </button>
+    <div class="collapse" id="hintActividades">
+        <div class="card border bg-light shadow-none mt-1">
+            <div class="card-body py-3 px-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 small">Para Tesoreros y Ayudantes</p>
+                        <ol class="mb-0 ps-3 small text-muted">
+                            <li>Crea una actividad con nombre, fecha y monto referencial (ej: Kermesse, $200.000).</li>
+                            <li>Haz clic en <strong>Repartir / Ver</strong> para asignar fondos a los alumnos.</li>
+                            <li>Elige <em>repartir equitativamente</em> para dividir el total en partes iguales, o <em>monto manual</em> para asignar un valor distinto a cada alumno.</li>
+                            <li>Puedes editar o quitar la asignación de un alumno en cualquier momento.</li>
+                            <li>Si necesitas rehacer el reparto desde cero, usa <strong>Limpiar y Volver a Repartir</strong>.</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="fw-semibold mb-2 small">Lo que ven los Apoderados</p>
+                        <ul class="mb-0 ps-3 small text-muted">
+                            <li>En su panel personal ven cada actividad y el monto asignado a su hijo.</li>
+                            <li>El total de actividades se suma al fondo acumulado del alumno.</li>
+                            <li>No pueden modificar nada, solo consultar.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

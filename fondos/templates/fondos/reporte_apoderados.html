@@ -1,0 +1,133 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Reporte Apoderados | Mis Cuotas{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <a href="{% url 'manage_users' %}" class="text-muted text-decoration-none small">← Volver a Usuarios</a>
+        <h2 class="fw-bold mt-1">Reporte de Apoderados</h2>
+        <p class="text-muted mb-0">Asociación de apoderados con sus alumnos, actividades y cuotas.</p>
+    </div>
+</div>
+
+{% for item in apoderados_data %}
+{% with apoderado=item.apoderado students=item.students %}
+<div class="card shadow-sm border mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold">{{ apoderado.last_name }} {{ apoderado.first_name }}</h5>
+            <small class="text-muted">{{ apoderado.username }}{% if apoderado.email %} · {{ apoderado.email }}{% endif %}</small>
+        </div>
+        <span class="badge bg-secondary">{{ students|length }} alumno{{ students|length|pluralize:"s" }}</span>
+    </div>
+
+    {% if students %}
+    {% for student in students %}
+    <div class="{% if not forloop.last %}border-bottom{% endif %} p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0">
+                <a href="{% url 'student_detail' student.id %}" class="text-decoration-none text-dark">
+                    {{ student.last_name }} {{ student.first_name }}
+                </a>
+            </h6>
+            <span class="badge bg-success fs-6 px-3">${{ student.total_funds }} total</span>
+        </div>
+
+        <div class="row g-3">
+            <!-- Actividades -->
+            <div class="col-md-6">
+                <div class="bg-light rounded p-2 mb-1 d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold text-muted">Actividades</span>
+                    <span class="badge bg-success">${{ student.total_actividades }}</span>
+                </div>
+                {% with dists=student.distributions.all %}
+                {% if dists %}
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for dist in dists %}
+                        <tr>
+                            <td class="text-muted small ps-2">{{ dist.activity.date|date:"d M Y" }}</td>
+                            <td class="small">{{ dist.activity.name }}</td>
+                            <td class="text-end pe-2 text-success fw-bold small">+${{ dist.amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-muted small ps-2 py-1">Sin actividades asignadas.</div>
+                {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Cuotas -->
+            <div class="col-md-6">
+                <div class="bg-light rounded p-2 mb-1 d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold text-muted">Cuotas</span>
+                    <span class="badge bg-success">${{ student.total_cuotas_pagadas }} pagado</span>
+                </div>
+                {% with pagados=student.pagos_pagados pendientes=student.pagos_pendientes %}
+                {% if pendientes or pagados %}
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for pago in pendientes %}
+                        <tr class="table-warning">
+                            <td class="text-muted small ps-2">{{ pago.cuota.date|date:"d M Y" }}</td>
+                            <td class="small">{{ pago.cuota.name }}</td>
+                            <td class="text-end pe-2 small text-muted">${{ pago.cuota.amount }}</td>
+                            <td class="text-end pe-2"><span class="badge bg-warning text-dark" style="font-size:0.65rem">Pendiente</span></td>
+                        </tr>
+                        {% endfor %}
+                        {% for pago in pagados %}
+                        <tr>
+                            <td class="text-muted small ps-2">{{ pago.cuota.date|date:"d M Y" }}</td>
+                            <td class="small">{{ pago.cuota.name }}</td>
+                            <td class="text-end pe-2 text-success fw-bold small">+${{ pago.cuota.amount }}</td>
+                            <td class="text-end pe-2"><span class="badge bg-success" style="font-size:0.65rem">Pagado</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-muted small ps-2 py-1">Sin cuotas asignadas.</div>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="p-3 text-muted small">Este apoderado no tiene alumnos en este curso.</div>
+    {% endif %}
+</div>
+{% endwith %}
+{% empty %}
+<div class="alert alert-info">No hay apoderados registrados en este curso.</div>
+{% endfor %}
+
+{% if sin_apoderado %}
+<div class="card shadow-sm border mb-4">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-bold text-muted">Sin Apoderado Asignado</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <tbody>
+                {% for student in sin_apoderado %}
+                <tr>
+                    <td class="ps-3 fw-semibold">
+                        <a href="{% url 'student_detail' student.id %}" class="text-decoration-none text-dark">
+                            {{ student.last_name }} {{ student.first_name }}
+                        </a>
+                    </td>
+                    <td class="text-end pe-3">
+                        <span class="badge bg-success">${{ student.total_funds }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

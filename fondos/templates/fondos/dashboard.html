@@ -1,12 +1,13 @@
 {% extends "fondos/base.html" %}
 
-{% block title %}Mi Panel | Fondos Curso{% endblock %}
+{% block title %}Mi Panel | Mis Cuotas{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
         <h2 class="fw-bold">Hola, {{ user.first_name|default:user.username }}</h2>
-        <p class="text-muted">Aquí puedes ver los fondos acumulados por tus pupilos.</p>
+        <p class="text-muted">Aquí puedes ver los fondos acumulados y las cuotas pagadas o pendientes de tus pupilos.
+        </p>
     </div>
 </div>
 
@@ -25,9 +26,9 @@
             </div>
         </div>
 
-        <div class="row g-0 border rounded-bottom shadow-sm mb-4">
+        <div class="row g-0 border rounded-bottom shadow-sm mb-3">
             <!-- Actividades -->
-            <div class="col-md-6 border-end">
+            <div class="col-12">
                 <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0">Fondos de Actividades</h6>
                     <span class="badge bg-success">${{ student.total_actividades }}</span>
@@ -58,8 +59,11 @@
                 </div>
             </div>
 
+        </div>
+
+        <div class="row g-0 border rounded shadow-sm mb-4">
             <!-- Cuotas -->
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0">Cuotas</h6>
                     <span class="badge bg-success">${{ student.total_cuotas_pagadas }} pagado</span>
