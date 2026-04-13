@@ -6,9 +6,13 @@ def curso_context(request):
         return {}
     current_curso = get_current_curso(request)
     user_cursos = get_user_cursos(request.user)
-    puede_gestionar = False
-    if current_curso:
+    # is_staff siempre puede gestionar aunque no tenga current_curso en sesión
+    if request.user.is_staff:
+        puede_gestionar = True
+    elif current_curso:
         puede_gestionar = can_manage_curso(request.user, current_curso)
+    else:
+        puede_gestionar = False
     return {
         'current_curso': current_curso,
         'user_cursos': user_cursos,

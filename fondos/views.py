@@ -676,8 +676,8 @@ def generar_reporte(request):
     from django.http import HttpResponse
 
     current_curso = get_current_curso(request)
-    if current_curso.tipo != 'AVANZADO':
-        messages.error(request, 'Esta función requiere un curso con plan Avanzado.')
+    if not current_curso.es_avanzado_activo:
+        messages.error(request, 'Esta función requiere un curso con plan Avanzado activo. Verifica el período configurado.')
         return redirect('reportes')
 
     tipo_reporte = request.POST.get('tipo_reporte', 'actividades')
@@ -1029,3 +1029,68 @@ def reporte_apoderados(request):
         'sin_apoderado': sin_apoderado,
     }
     return render(request, 'fondos/reporte_apoderados.html', context)
+
+
+@login_required
+def admin_global_dashboard(request):
+    """Dashboard global solo para administradores (is_staff).
+    Muestra métricas globales y el estado del plan avanzado de cada curso."""
+    if not request.user.is_staff:
+        messages.error(request, 'Acceso denegado.')
+        return redirect('dashboard')
+
+    total_cursos = Curso.objects.count()
+    total_alumnos = Student.objects.count()
+    # Apoderados: todos los usuarios con membresía en algún curso (cualquier rol)
+    total_apoderados = User.objects.filter(
+        membresias__isnull=False
+    ).distinct().count()
+
+    cursos = Curso.objects.annotate(
+        num_alumnos=Count('students', distinct=True),
+        # Todos los miembros del curso (apoderados + tesoreros + ayudantes)
+        num_apoderados=Count('membresias', distinct=True),
+    ).order_by('-year', 'name')
+
+    context = {
+        'total_cursos': total_cursos,
+        'total_alumnos': total_alumnos,
+        'total_apoderados': total_apoderados,
+        'cursos': cursos,
+        'today': timezone.localdate(),
+    }
+    return render(request, 'fondos/admin_global_dashboard.html', context)
+
+
+@login_required
+def set_avanzado_periodo(request, curso_id):
+    """Permite al administrador (is_staff) configurar el período de plan avanzado de un curso."""
+    if not request.user.is_staff:
+        messages.error(request, 'Acceso denegado.')
+        return redirect('dashboard')
+
+    curso = get_object_or_404(Curso, id=curso_id)
+
+    if request.method == 'POST':
+        from django.utils.dateparse import parse_date
+        desde_str = request.POST.get('avanzado_desde', '').strip()
+        hasta_str = request.POST.get('avanzado_hasta', '').strip()
+
+        desde = parse_date(desde_str) if desde_str else None
+        hasta = parse_date(hasta_str) if hasta_str else None
+
+        if desde and hasta and hasta < desde:
+            messages.error(request, 'La fecha de fin no puede ser anterior a la fecha de inicio.')
+        else:
+            curso.avanzado_desde = desde
+            curso.avanzado_hasta = hasta
+            curso.save()
+            if desde and hasta:
+                messages.success(
+                    request,
+                    f'Período avanzado configurado para {curso}: {desde.strftime("%d/%m/%Y")} — {hasta.strftime("%d/%m/%Y")}.'
+                )
+            else:
+                messages.success(request, f'Período avanzado eliminado para {curso}.')
+
+    return redirect('admin_global_dashboard')

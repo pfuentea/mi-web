@@ -1,0 +1,270 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Dashboard Global | Mis Cuotas{% endblock %}
+
+{% block content %}
+<style>
+    .stat-card {
+        border-radius: 16px;
+        padding: 1.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+    .stat-icon {
+        width: 60px; height: 60px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; flex-shrink: 0;
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; margin-top: 0.2rem; }
+
+    .badge-activo   { background:#d1fae5; color:#065f46; }
+    .badge-pendiente{ background:#fef3c7; color:#92400e; }
+    .badge-expirado { background:#fee2e2; color:#991b1b; }
+    .badge-sin      { background:#f1f5f9; color:#64748b; }
+
+    .periodo-form input[type="date"] { font-size: 0.82rem; }
+    .curso-row:hover { background-color: #fafafa; }
+
+    .page-header-icon {
+        width: 44px; height: 44px; border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display:flex; align-items:center; justify-content: center;
+        font-size: 1.2rem; color: white; flex-shrink: 0;
+    }
+</style>
+
+<!-- Header -->
+<div class="d-flex align-items-center gap-3 mb-4">
+    <div class="page-header-icon">⚙</div>
+    <div>
+        <h2 class="fw-bold mb-0">Dashboard Global</h2>
+        <p class="text-muted mb-0 small">Visión general de la plataforma y gestión de planes avanzados.</p>
+    </div>
+</div>
+
+<!-- Tarjetas de métricas -->
+<div class="row g-3 mb-5">
+    <!-- Cursos -->
+    <div class="col-md-4">
+        <div class="card stat-card" style="background: linear-gradient(135deg, #ede9fe, #f5f3ff);">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">📚</div>
+            <div>
+                <div class="stat-value" style="color: #4f46e5;">{{ total_cursos }}</div>
+                <div class="stat-label" style="color: #6366f1;">Cursos en la plataforma</div>
+            </div>
+        </div>
+    </div>
+    <!-- Apoderados -->
+    <div class="col-md-4">
+        <div class="card stat-card" style="background: linear-gradient(135deg, #ecfdf5, #f0fdf4);">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">👥</div>
+            <div>
+                <div class="stat-value" style="color: #065f46;">{{ total_apoderados }}</div>
+                <div class="stat-label" style="color: #10b981;">Miembros registrados</div>
+            </div>
+        </div>
+    </div>
+    <!-- Alumnos -->
+    <div class="col-md-4">
+        <div class="card stat-card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe);">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🎒</div>
+            <div>
+                <div class="stat-value" style="color: #1d4ed8;">{{ total_alumnos }}</div>
+                <div class="stat-label" style="color: #3b82f6;">Alumnos registrados</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de cursos -->
+<div class="card shadow-sm" style="border-radius: 16px; overflow: hidden;">
+    <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+        <h5 class="mb-0 fw-bold">Cursos y Plan Avanzado</h5>
+        <span class="text-muted small">{{ cursos|length }} curso{% if cursos|length != 1 %}s{% endif %}</span>
+    </div>
+
+    {% if not cursos %}
+    <div class="p-5 text-center text-muted">
+        <div style="font-size: 2.5rem;">📭</div>
+        <p class="mt-2 mb-0">No hay cursos registrados aún.</p>
+    </div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th class="ps-4 py-3" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; font-weight:600;">Curso</th>
+                    <th class="py-3" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; font-weight:600;">Alumnos</th>
+                    <th class="py-3" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; font-weight:600;">Miembros</th>
+                    <th class="py-3" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; font-weight:600;">Estado Plan Avanzado</th>
+                    <th class="py-3" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; font-weight:600;">Período Configurado</th>
+                    <th class="py-3 pe-4 text-end" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; font-weight:600;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for curso in cursos %}
+                <tr class="curso-row">
+                    <!-- Nombre -->
+                    <td class="ps-4 py-3">
+                        <div class="fw-semibold">{{ curso.name }}</div>
+                        <div class="text-muted small">{{ curso.year }}</div>
+                    </td>
+                    <!-- Alumnos -->
+                    <td>
+                        <span class="fw-semibold">{{ curso.num_alumnos }}</span>
+                    </td>
+                    <!-- Apoderados -->
+                    <td>
+                        <span class="fw-semibold">{{ curso.num_apoderados }}</span>
+                    </td>
+                    <!-- Estado -->
+                    <td>
+                        {% with estado=curso.estado_avanzado %}
+                        {% if estado == 'activo' %}
+                            <span class="badge badge-activo px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1">
+                                <span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+                                Activo
+                            </span>
+                        {% elif estado == 'pendiente' %}
+                            <span class="badge badge-pendiente px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1">
+                                <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+                                Pendiente
+                            </span>
+                        {% elif estado == 'expirado' %}
+                            <span class="badge badge-expirado px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1">
+                                <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                                Expirado
+                            </span>
+                        {% else %}
+                            <span class="badge badge-sin px-3 py-2 rounded-pill">
+                                Sin período
+                            </span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <!-- Período -->
+                    <td>
+                        {% if curso.avanzado_desde and curso.avanzado_hasta %}
+                            <div class="small">
+                                <span class="text-muted">Desde:</span>
+                                <strong>{{ curso.avanzado_desde|date:"d/m/Y" }}</strong>
+                            </div>
+                            <div class="small">
+                                <span class="text-muted">Hasta:</span>
+                                <strong>{{ curso.avanzado_hasta|date:"d/m/Y" }}</strong>
+                            </div>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <!-- Acciones -->
+                    <td class="pe-4 text-end">
+                        <a href="{% url 'switch_curso' curso.id %}" class="btn btn-sm btn-primary-custom fw-semibold me-1">
+                            🚀 Gestionar
+                        </a>
+                        <button class="btn btn-sm btn-outline-primary fw-semibold"
+                                data-bs-toggle="modal"
+                                data-bs-target="#periodoModal{{ curso.id }}">
+                            ✏ Periodo
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Leyenda de estados -->
+<div class="mt-3 d-flex flex-wrap gap-3 px-1">
+    <span class="small text-muted d-flex align-items-center gap-1">
+        <span class="badge badge-activo px-2 py-1 rounded-pill">Activo</span> — La fecha actual está dentro del período
+    </span>
+    <span class="small text-muted d-flex align-items-center gap-1">
+        <span class="badge badge-pendiente px-2 py-1 rounded-pill">Pendiente</span> — El período aún no comienza
+    </span>
+    <span class="small text-muted d-flex align-items-center gap-1">
+        <span class="badge badge-expirado px-2 py-1 rounded-pill">Expirado</span> — El período ya terminó
+    </span>
+    <span class="small text-muted d-flex align-items-center gap-1">
+        <span class="badge badge-sin px-2 py-1 rounded-pill">Sin período</span> — No se ha configurado aún
+    </span>
+</div>
+
+
+<!-- ===== MODALES DE PERÍODO POR CURSO ===== -->
+{% for curso in cursos %}
+<div class="modal fade" id="periodoModal{{ curso.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none;">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold">Período de Plan Avanzado</h5>
+                    <p class="text-muted small mb-0">{{ curso.name }} ({{ curso.year }})</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'set_avanzado_periodo' curso.id %}" class="periodo-form">
+                {% csrf_token %}
+                <div class="modal-body pt-3">
+                    <div class="p-3 rounded-3 mb-4" style="background:#f8fafc; border: 1px solid #e2e8f0;">
+                        <p class="small text-muted mb-0">
+                            El plan avanzado estará <strong>activo</strong> cuando la fecha de hoy esté dentro del rango especificado.
+                            Deja ambos campos vacíos para <strong>desactivar</strong> el período.
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Fecha de inicio</label>
+                        <input type="date" name="avanzado_desde" class="form-control"
+                               id="desde_{{ curso.id }}"
+                               value="{{ curso.avanzado_desde|date:'Y-m-d' }}">
+                        <div class="form-text">Primer día en que el plan avanzado estará disponible.</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">Fecha de fin</label>
+                        <input type="date" name="avanzado_hasta" class="form-control"
+                               id="hasta_{{ curso.id }}"
+                               value="{{ curso.avanzado_hasta|date:'Y-m-d' }}">
+                        <div class="form-text">Último día en que el plan avanzado estará disponible (inclusive).</div>
+                    </div>
+
+                    {% if curso.avanzado_desde and curso.avanzado_hasta %}
+                    <div class="mt-3">
+                        {% with estado=curso.estado_avanzado %}
+                        {% if estado == 'activo' %}
+                        <div class="alert alert-success py-2 small mb-0">✅ <strong>Plan activo ahora.</strong> Vence el {{ curso.avanzado_hasta|date:"d/m/Y" }}.</div>
+                        {% elif estado == 'pendiente' %}
+                        <div class="alert alert-warning py-2 small mb-0">⏳ <strong>Aún no inicia.</strong> Comienza el {{ curso.avanzado_desde|date:"d/m/Y" }}.</div>
+                        {% elif estado == 'expirado' %}
+                        <div class="alert alert-danger py-2 small mb-0">❌ <strong>Período expirado</strong> el {{ curso.avanzado_hasta|date:"d/m/Y" }}.</div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    {% if curso.avanzado_desde or curso.avanzado_hasta %}
+                    <button type="submit" name="avanzado_desde" value=""
+                            class="btn btn-outline-danger btn-sm me-auto"
+                            onclick="document.getElementById('desde_{{ curso.id }}').value=''; document.getElementById('hasta_{{ curso.id }}').value='';">
+                        Quitar período
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary-custom fw-semibold">Guardar Período</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

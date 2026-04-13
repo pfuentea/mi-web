@@ -71,6 +71,13 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'reportes' %}">Reportes</a>
                             </li>
+                            {% if user.is_staff %}
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold" href="{% url 'admin_global_dashboard' %}" style="color: #a78bfa;">
+                                    ⚙ Global
+                                </a>
+                            </li>
+                            {% endif %}
                         {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'dashboard' %}">Mi Panel</a>

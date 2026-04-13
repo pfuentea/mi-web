@@ -32,4 +32,6 @@ urlpatterns = [
     path('cuotas/pago/<int:pago_id>/toggle/', views.toggle_pago, name='toggle_pago'),
     path('reportes/', views.reportes, name='reportes'),
     path('reportes/generar/', views.generar_reporte, name='generar_reporte'),
+    path('admin-global/', views.admin_global_dashboard, name='admin_global_dashboard'),
+    path('admin-global/set-periodo/<int:curso_id>/', views.set_avanzado_periodo, name='set_avanzado_periodo'),
 ]

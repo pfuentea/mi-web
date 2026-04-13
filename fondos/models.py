@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class Curso(models.Model):
@@ -14,7 +15,9 @@ class Curso(models.Model):
     year = models.IntegerField(verbose_name="Año")
     description = models.TextField(blank=True, verbose_name="Descripción")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default=TIPO_NORMAL, verbose_name="Tipo de Plan")
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default=TIPO_NORMAL, verbose_name="Tipo de Plan (legacy)")
+    avanzado_desde = models.DateField(null=True, blank=True, verbose_name="Plan Avanzado desde")
+    avanzado_hasta = models.DateField(null=True, blank=True, verbose_name="Plan Avanzado hasta")
 
     class Meta:
         verbose_name = "Curso"
@@ -23,6 +26,26 @@ class Curso(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.year})"
+
+    @property
+    def es_avanzado_activo(self):
+        """True si la fecha actual está dentro del período de plan avanzado configurado."""
+        hoy = timezone.localdate()
+        if self.avanzado_desde and self.avanzado_hasta:
+            return self.avanzado_desde <= hoy <= self.avanzado_hasta
+        return False
+
+    @property
+    def estado_avanzado(self):
+        """Retorna el estado del plan avanzado como string descriptivo."""
+        if not self.avanzado_desde or not self.avanzado_hasta:
+            return 'sin_periodo'
+        hoy = timezone.localdate()
+        if hoy < self.avanzado_desde:
+            return 'pendiente'
+        elif hoy > self.avanzado_hasta:
+            return 'expirado'
+        return 'activo'
 
 
 class CursoMembresia(models.Model):
