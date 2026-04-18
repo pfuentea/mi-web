@@ -218,6 +218,16 @@
                   <label class="form-label fw-semibold">Descripción <span class="text-muted fw-normal">(Opcional)</span></label>
                   <textarea name="description" class="form-control" rows="2">{{ current_curso.description }}</textarea>
               </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Meta por alumno <span class="text-muted fw-normal">(Opcional)</span></label>
+                  <div class="input-group">
+                      <span class="input-group-text">$</span>
+                      <input type="number" name="meta_por_alumno" class="form-control" min="0"
+                             value="{{ current_curso.meta_por_alumno|default:'' }}"
+                             placeholder="Ej: 50000">
+                  </div>
+                  <div class="form-text">Monto objetivo de recaudación por cada alumno. Dejar vacío para no usar meta.</div>
+              </div>
               {% if user.is_staff %}
               <div class="mb-3">
                   <label class="form-label fw-semibold">Tipo de Plan</label>

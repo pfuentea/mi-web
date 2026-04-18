@@ -12,16 +12,18 @@
     {% if existing_distributions %}
     <div class="col-auto">
         <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#clearDistModal">
-            Limpiar y Volver a Repartir
+            Limpiar y volver a repartir
         </button>
     </div>
     {% endif %}
 </div>
 
+<!-- Distribuciones existentes -->
 {% if existing_distributions %}
-<div class="card shadow-sm border mb-5">
-    <div class="card-header bg-white border-bottom py-3">
-        <h5 class="mb-0 fw-bold">Fondos Ya Repartidos</h5>
+<div class="card shadow-sm border mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">Fondos ya repartidos</h5>
+        <span class="badge bg-success fs-6">${{ total_distribuido }} total</span>
     </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -47,7 +49,7 @@
                 {% for dist in existing_distributions %}
                 <tr>
                     <td class="ps-4 fw-semibold">{{ dist.student.last_name }} {{ dist.student.first_name }}</td>
-                    <td>{{ dist.student.parent.first_name|default:dist.student.parent.username|default:"- Sin Asignar -" }} {{ dist.student.parent.last_name|default:"" }}</td>
+                    <td class="text-muted">{{ dist.student.parent.first_name|default:dist.student.parent.username|default:"— Sin Asignar —" }} {{ dist.student.parent.last_name|default:"" }}</td>
                     <td class="text-end pe-4 fw-bold text-success">${{ dist.amount }}</td>
                     <td class="text-end pe-4">
                         <button class="btn btn-sm btn-outline-secondary p-1 px-2"
@@ -67,7 +69,7 @@
     </div>
 </div>
 
-<!-- Modales editar distribución (fuera de la tabla) -->
+<!-- Modales editar distribución -->
 {% for dist in existing_distributions %}
 <div class="modal fade" id="editDistModal{{ dist.id }}" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -94,7 +96,7 @@
 </div>
 {% endfor %}
 
-<!-- Modal confirmar limpiar distribuciones -->
+<!-- Modal confirmar limpiar -->
 <div class="modal fade" id="clearDistModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
@@ -118,80 +120,94 @@
 </div>
 {% endif %}
 
-<!-- Formulario de nueva distribución -->
-<div class="card shadow-sm border mt-4">
-    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-        <div>
-            <h5 class="mb-0 fw-bold">Distribuir Nuevos Fondos</h5>
-            <p class="text-muted m-0 small">Selecciona los alumnos y asígnales su parte.</p>
-        </div>
-        <div class="d-flex gap-2">
-            <span class="text-muted small align-self-center">Ordenar por:</span>
-            <a href="?sort=name&order={% if sort_by == 'name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
-               class="btn btn-sm {% if sort_by == 'name' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                Nombre {% if sort_by == 'name' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-            </a>
-            <a href="?sort=parent&order={% if sort_by == 'parent' and sort_order == 'asc' %}desc{% else %}asc{% endif %}"
-               class="btn btn-sm {% if sort_by == 'parent' %}btn-primary-custom{% else %}btn-outline-secondary{% endif %}">
-                Apoderado {% if sort_by == 'parent' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-            </a>
-        </div>
+<!-- Formulario de reparto -->
+<div class="card shadow-sm border mt-2">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-bold">Asignar montos a alumnos</h5>
     </div>
     <div class="card-body">
         <form method="post" id="distributionForm">
             {% csrf_token %}
-            <div class="row mb-4 bg-light p-3 rounded">
-                <div class="col-md-6 mb-3 mb-md-0">
-                    <label class="form-label fw-bold">Modo de Reparto</label>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="distribution_type" id="typeEqual" value="equal" checked onchange="toggleManualInputs()">
-                        <label class="form-check-label" for="typeEqual">Dividir monto total en partes iguales</label>
-                    </div>
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="radio" name="distribution_type" id="typeManual" value="manual" onchange="toggleManualInputs()">
-                        <label class="form-check-label" for="typeManual">Ingresar monto manual a cada alumno</label>
-                    </div>
-                </div>
-                <div class="col-md-6" id="totalAmountBox">
-                    <label class="form-label fw-bold">Monto Total a repartir</label>
+
+            <!-- Controles superiores -->
+            <div class="row g-3 align-items-end mb-3 bg-light p-3 rounded">
+                <!-- Columna 1: Total referencia -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold mb-1">Total a repartir <span class="text-muted fw-normal small">(ref.)</span></label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
-                        <input type="number" class="form-control" name="total_amount" id="totalAmountInput" value="{{ activity.total_amount }}">
+                        <input type="number" id="totalAmountInput" class="form-control" value="{{ activity.total_amount }}" min="0">
                     </div>
-                    <div class="form-text">Se dividirá entre los alumnos seleccionados.</div>
+                </div>
+
+                <!-- Columna 2: Monto por alumno + Copiar -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold mb-1">Monto por alumno</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" id="montoPorAlumnoInput" class="form-control" placeholder="Ej: 50" min="0">
+                        <button type="button" class="btn btn-outline-primary fw-semibold" onclick="copiarMontoATodos()">
+                            Copiar a todos
+                        </button>
+                    </div>
+                    <div class="form-text">Copia el mismo monto a cada alumno seleccionado.</div>
+                </div>
+
+                <!-- Columna 3: Dividir -->
+                <div class="col-md-auto">
+                    <button type="button" class="btn btn-primary-custom fw-semibold" onclick="dividirEntreTodos()">
+                        Dividir ÷ alumnos
+                    </button>
+                    <div class="form-text">Divide el total en partes iguales.</div>
+                </div>
+
+                <!-- Columna 4: Saldo -->
+                <div class="col-md-auto ms-md-auto">
+                    <div class="border rounded px-3 py-2 text-center bg-white" style="min-width:140px;">
+                        <div class="small text-muted mb-0">Saldo</div>
+                        <div id="saldoDisplay" class="fs-4 fw-bold">$0</div>
+                        <div id="saldoLabel" class="small text-muted">de $<span id="totalRef">{{ activity.total_amount }}</span></div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Tabla de alumnos -->
             <div class="table-responsive">
-                <table class="table table-hover align-middle border">
+                <table class="table table-hover align-middle border" id="studentsTable">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width:50px;">
+                            <th class="ps-3" style="width:46px;">
                                 <input class="form-check-input" type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)">
                             </th>
                             <th>Alumno</th>
                             <th>Apoderado</th>
-                            <th style="width:220px;" class="pe-3">Monto Manual</th>
+                            <th style="width:180px;" class="pe-3">Monto a asignar</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for student in students %}
-                        <tr class="{% if student.id in distributed_ids %}table-secondary text-muted{% endif %}">
+                        <tr class="{% if student.id in distributed_ids %}table-secondary text-muted{% endif %}" data-student-id="{{ student.id }}">
                             <td class="ps-3">
                                 {% if student.id not in distributed_ids %}
-                                <input class="form-check-input student-checkbox" type="checkbox" name="students" value="{{ student.id }}">
+                                <input class="form-check-input student-checkbox" type="checkbox" name="students" value="{{ student.id }}"
+                                       onchange="recalcularSaldo()">
                                 {% endif %}
                             </td>
                             <td>
                                 {{ student.last_name }} {{ student.first_name }}
-                                {% if student.id in distributed_ids %}<span class="badge bg-secondary ms-1">Ya recibió</span>{% endif %}
+                                {% if student.id in distributed_ids %}
+                                    <span class="badge bg-secondary ms-1">Ya recibió</span>
+                                {% endif %}
                             </td>
-                            <td>{{ student.parent.first_name|default:student.parent.username|default:"- Sin Asignar -" }} {{ student.parent.last_name|default:"" }}</td>
+                            <td class="text-muted">{{ student.parent.first_name|default:student.parent.username|default:"— Sin Asignar —" }} {{ student.parent.last_name|default:"" }}</td>
                             <td class="pe-3">
                                 {% if student.id not in distributed_ids %}
-                                <div class="input-group input-group-sm manual-amount-group" style="display:none;">
+                                <div class="input-group input-group-sm">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" name="amount_{{ student.id }}" class="form-control" placeholder="0">
+                                    <input type="number" name="amount_{{ student.id }}"
+                                           class="form-control amount-input"
+                                           placeholder="0" min="0"
+                                           oninput="recalcularSaldo()">
                                 </div>
                                 {% endif %}
                             </td>
@@ -201,8 +217,13 @@
                 </table>
             </div>
 
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary-custom fw-bold py-2">Repartir Fondos a Seleccionados</button>
+            <input type="hidden" name="distribution_type" value="manual">
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted small" id="resumenAsignado"></div>
+                <button type="submit" class="btn btn-primary-custom fw-bold px-5 py-2">
+                    Repartir fondos
+                </button>
             </div>
         </form>
     </div>
@@ -211,13 +232,92 @@
 
 {% block scripts %}
 <script>
+    const totalInput    = document.getElementById('totalAmountInput');
+    const montoInput    = document.getElementById('montoPorAlumnoInput');
+    const saldoDisplay  = document.getElementById('saldoDisplay');
+    const saldoLabel    = document.getElementById('saldoLabel');
+    const totalRef      = document.getElementById('totalRef');
+    const resumenDiv    = document.getElementById('resumenAsignado');
+
+    totalInput.addEventListener('input', () => {
+        totalRef.textContent = (parseInt(totalInput.value) || 0).toLocaleString();
+        recalcularSaldo();
+    });
+
     function toggleAllCheckboxes(source) {
         document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = source.checked);
+        recalcularSaldo();
     }
-    function toggleManualInputs() {
-        const isManual = document.getElementById('typeManual').checked;
-        document.querySelectorAll('.manual-amount-group').forEach(el => el.style.display = isManual ? 'flex' : 'none');
-        document.getElementById('totalAmountBox').style.display = isManual ? 'none' : 'block';
+
+    // Copia el MISMO monto a cada alumno seleccionado
+    function copiarMontoATodos() {
+        const monto = parseInt(montoInput.value) || 0;
+        if (monto <= 0) { montoInput.focus(); return; }
+        autoSelectIfNone();
+        document.querySelectorAll('.student-checkbox:checked').forEach(cb => {
+            const inp = cb.closest('tr').querySelector('.amount-input');
+            if (inp) inp.value = monto;
+        });
+        recalcularSaldo();
     }
+
+    // Divide el total referencia entre los alumnos seleccionados
+    function dividirEntreTodos() {
+        autoSelectIfNone();
+        const selected = document.querySelectorAll('.student-checkbox:checked');
+        const total = parseInt(totalInput.value) || 0;
+        if (selected.length === 0 || total === 0) return;
+        const base  = Math.floor(total / selected.length);
+        const resto = total - base * selected.length;
+        selected.forEach((cb, idx) => {
+            const inp = cb.closest('tr').querySelector('.amount-input');
+            if (inp) inp.value = idx === 0 ? base + resto : base;
+        });
+        recalcularSaldo();
+    }
+
+    function autoSelectIfNone() {
+        const anyChecked = document.querySelectorAll('.student-checkbox:checked').length > 0;
+        if (!anyChecked) {
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+            document.getElementById('selectAll').checked = true;
+        }
+    }
+
+    function recalcularSaldo() {
+        const total = parseInt(totalInput.value) || 0;
+        let asignado = 0;
+        let count = 0;
+
+        document.querySelectorAll('.student-checkbox:checked').forEach(cb => {
+            const inp = cb.closest('tr').querySelector('.amount-input');
+            asignado += parseInt(inp ? inp.value : 0) || 0;
+            count++;
+        });
+
+        const saldo = total - asignado;
+
+        saldoDisplay.textContent = (saldo >= 0 ? '+' : '') + '$' + saldo.toLocaleString();
+
+        if (saldo > 0) {
+            saldoDisplay.className = 'fs-4 fw-bold text-warning';
+            saldoLabel.innerHTML = `Falta por asignar`;
+        } else if (saldo < 0) {
+            saldoDisplay.className = 'fs-4 fw-bold text-danger';
+            saldoLabel.innerHTML = `Excedido del total`;
+        } else if (asignado > 0) {
+            saldoDisplay.className = 'fs-4 fw-bold text-success';
+            saldoLabel.innerHTML = `Cuadrado exacto ✓`;
+        } else {
+            saldoDisplay.className = 'fs-4 fw-bold text-muted';
+            saldoLabel.innerHTML = `de $<span id="totalRef">${total.toLocaleString()}</span>`;
+        }
+
+        resumenDiv.textContent = count > 0
+            ? `${count} alumno${count !== 1 ? 's' : ''} · $${asignado.toLocaleString()} asignados`
+            : '';
+    }
+
+    recalcularSaldo();
 </script>
 {% endblock %}

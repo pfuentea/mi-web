@@ -63,6 +63,7 @@
                     <th>Monto x Alumno</th>
                     <th>Pagaron</th>
                     <th>Pendientes</th>
+                    <th>Recaudado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -80,6 +81,7 @@
                             <span class="badge bg-secondary">0</span>
                         {% endif %}
                     </td>
+                    <td class="fw-semibold text-success">${{ cuota.total_recaudado }}</td>
                     <td>
                         <a href="{% url 'cuota_detail' cuota.id %}" class="btn btn-sm btn-outline-primary fw-bold">
                             Ver Pagos
@@ -94,7 +96,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No hay cuotas creadas aún.</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No hay cuotas creadas aún.</td>
                 </tr>
                 {% endfor %}
             </tbody>

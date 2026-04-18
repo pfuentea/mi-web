@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Sum, F, Count, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from .models import Student, Activity, FundDistribution, Cuota, PagoCuota, Curso, CursoMembresia
+from .models import Student, Activity, FundDistribution, Cuota, PagoCuota, Curso, CursoMembresia, Abono
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .access import get_current_curso, get_user_cursos, can_manage_curso, gestor_required, is_tesorero_principal
@@ -90,10 +90,12 @@ def edit_curso(request):
         year = request.POST.get('year', '').strip()
         description = request.POST.get('description', '').strip()
         tipo = request.POST.get('tipo', '').strip()
+        meta_str = request.POST.get('meta_por_alumno', '').strip()
         if name and year and year.isdigit():
             current_curso.name = name
             current_curso.year = int(year)
             current_curso.description = description
+            current_curso.meta_por_alumno = int(meta_str) if meta_str.isdigit() and int(meta_str) > 0 else None
             if request.user.is_staff and tipo in (Curso.TIPO_NORMAL, Curso.TIPO_AVANZADO):
                 current_curso.tipo = tipo
             current_curso.save()
@@ -244,13 +246,15 @@ def distribute_funds(request, activity_id):
         return redirect('admin_dashboard')
 
     existing_distributions = FundDistribution.objects.filter(activity=activity).select_related('student__parent')
-    distributed_ids = existing_distributions.values_list('student_id', flat=True)
+    distributed_ids = list(existing_distributions.values_list('student_id', flat=True))
+    total_distribuido = sum(d.amount for d in existing_distributions)
 
     context = {
         'activity': activity,
         'students': students,
         'existing_distributions': existing_distributions,
         'distributed_ids': distributed_ids,
+        'total_distribuido': total_distribuido,
         'sort_by': sort_by,
         'sort_order': sort_order,
     }
@@ -469,7 +473,17 @@ def student_detail(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     distributions = FundDistribution.objects.filter(student=student).select_related('activity').order_by('-activity__date')
     pagos_cuotas = PagoCuota.objects.filter(student=student).select_related('cuota').order_by('-cuota__date')
-    context = {'student': student, 'distributions': distributions, 'pagos_cuotas': pagos_cuotas}
+    meta = student.curso.meta_por_alumno if student.curso else None
+    falta = max(0, meta - student.total_funds) if meta else None
+    porcentaje = min(100, int(student.total_funds * 100 / meta)) if meta and meta > 0 else None
+    context = {
+        'student': student,
+        'distributions': distributions,
+        'pagos_cuotas': pagos_cuotas,
+        'meta': meta,
+        'falta': falta,
+        'porcentaje': porcentaje,
+    }
     return render(request, 'fondos/student_detail.html', context)
 
 
@@ -553,7 +567,7 @@ def cuota_detail(request, cuota_id):
     sort_by = request.GET.get('sort', 'name')
     sort_order = request.GET.get('order', 'asc')
 
-    pagos = PagoCuota.objects.filter(cuota=cuota).select_related('student__parent')
+    pagos = PagoCuota.objects.filter(cuota=cuota).select_related('student__parent').prefetch_related('abonos')
 
     if filter_status == 'paid':
         pagos = pagos.filter(paid=True)
@@ -596,6 +610,79 @@ def toggle_pago(request, pago_id):
             pago.paid_date = None
         pago.save()
     return redirect('cuota_detail', cuota_id=pago.cuota.id)
+
+
+@gestor_required
+def agregar_abono(request, pago_id):
+    current_curso = get_current_curso(request)
+    pago = get_object_or_404(PagoCuota, id=pago_id, cuota__curso=current_curso)
+    if request.method == 'POST':
+        amount_str = request.POST.get('amount', '').strip()
+        fecha_str = request.POST.get('fecha', '').strip()
+        nota = request.POST.get('nota', '').strip()
+        from django.utils.dateparse import parse_date
+        fecha = parse_date(fecha_str) if fecha_str else timezone.localdate()
+        if amount_str and amount_str.isdigit() and int(amount_str) > 0:
+            Abono.objects.create(pago=pago, amount=int(amount_str), fecha=fecha, nota=nota)
+            # Auto-marcar como pagado si los abonos cubren el total
+            if pago.total_abonado >= pago.cuota.amount and not pago.paid:
+                pago.paid = True
+                pago.paid_date = timezone.now()
+                pago.save()
+                messages.success(request, f'Abono registrado. Cuota marcada como pagada automáticamente.')
+            else:
+                messages.success(request, f'Abono de ${int(amount_str):,} registrado.')
+        else:
+            messages.error(request, 'El monto del abono debe ser un número mayor a 0.')
+    return redirect('cuota_detail', cuota_id=pago.cuota.id)
+
+
+@gestor_required
+def editar_abono(request, abono_id):
+    current_curso = get_current_curso(request)
+    abono = get_object_or_404(Abono, id=abono_id, pago__cuota__curso=current_curso)
+    if request.method == 'POST':
+        amount_str = request.POST.get('amount', '').strip()
+        fecha_str = request.POST.get('fecha', '').strip()
+        nota = request.POST.get('nota', '').strip()
+        from django.utils.dateparse import parse_date
+        if amount_str and amount_str.isdigit() and int(amount_str) > 0:
+            abono.amount = int(amount_str)
+            if fecha_str:
+                abono.fecha = parse_date(fecha_str) or abono.fecha
+            abono.nota = nota
+            abono.save()
+            # Recalcular estado del pago
+            pago = abono.pago
+            if pago.total_abonado >= pago.cuota.amount and not pago.paid:
+                pago.paid = True
+                pago.paid_date = timezone.now()
+                pago.save()
+            elif pago.total_abonado < pago.cuota.amount and pago.paid:
+                pago.paid = False
+                pago.paid_date = None
+                pago.save()
+            messages.success(request, 'Abono actualizado.')
+        else:
+            messages.error(request, 'Monto inválido.')
+    return redirect('cuota_detail', cuota_id=abono.pago.cuota.id)
+
+
+@gestor_required
+def eliminar_abono(request, abono_id):
+    current_curso = get_current_curso(request)
+    abono = get_object_or_404(Abono, id=abono_id, pago__cuota__curso=current_curso)
+    cuota_id = abono.pago.cuota.id
+    pago = abono.pago
+    if request.method == 'POST':
+        abono.delete()
+        # Si ya no cubre el total, revertir a pendiente
+        if pago.total_abonado < pago.cuota.amount and pago.paid:
+            pago.paid = False
+            pago.paid_date = None
+            pago.save()
+        messages.success(request, 'Abono eliminado.')
+    return redirect('cuota_detail', cuota_id=cuota_id)
 
 
 @gestor_required

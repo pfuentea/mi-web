@@ -19,13 +19,42 @@
             {% endif %}
         </p>
     </div>
-    <div class="col-auto">
+    <div class="col-auto d-flex gap-3 align-items-center">
         <div class="card border-0 bg-success text-white px-4 py-3 text-center shadow-sm">
             <div class="fs-4 fw-bold">${{ student.total_funds }}</div>
             <div class="small">Total acumulado</div>
         </div>
+        {% if meta %}
+        <div class="card border px-4 py-3 text-center shadow-sm" style="min-width:140px;">
+            <div class="fs-4 fw-bold {% if falta == 0 %}text-success{% else %}text-warning{% endif %}">
+                {% if falta == 0 %}Meta ✓{% else %}-${{ falta }}{% endif %}
+            </div>
+            <div class="small text-muted">meta ${{ meta }}</div>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+{% if meta %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between small text-muted mb-1">
+        <span>Progreso hacia la meta</span>
+        <span>${{ student.total_funds }} de ${{ meta }} ({{ porcentaje }}%)</span>
+    </div>
+    <div class="progress" style="height:12px; border-radius:6px;">
+        <div class="progress-bar {% if porcentaje >= 100 %}bg-success{% elif porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
+             role="progressbar"
+             data-width="{{ porcentaje }}"
+             aria-valuenow="{{ porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+        </div>
+    </div>
+    {% if falta > 0 %}
+    <div class="small text-muted mt-1">Faltan <strong>${{ falta }}</strong> para alcanzar la meta.</div>
+    {% else %}
+    <div class="small text-success mt-1 fw-semibold">¡Meta alcanzada!</div>
+    {% endif %}
+</div>
+{% endif %}
 
 <div class="row g-4">
     <!-- Actividades -->
@@ -119,4 +148,12 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.progress-bar[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+</script>
 {% endblock %}

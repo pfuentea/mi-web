@@ -16,6 +16,7 @@ class Curso(models.Model):
     description = models.TextField(blank=True, verbose_name="Descripción")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default=TIPO_NORMAL, verbose_name="Tipo de Plan (legacy)")
+    meta_por_alumno = models.IntegerField(null=True, blank=True, verbose_name="Meta por alumno")
     avanzado_desde = models.DateField(null=True, blank=True, verbose_name="Plan Avanzado desde")
     avanzado_hasta = models.DateField(null=True, blank=True, verbose_name="Plan Avanzado hasta")
 
@@ -155,7 +156,14 @@ class Cuota(models.Model):
 
     @property
     def total_recaudado(self):
-        return self.pagos.filter(paid=True).count() * self.amount
+        from django.db.models import Sum
+        # Pagos completados: monto completo de la cuota
+        pagados = self.pagos.filter(paid=True).count() * self.amount
+        # Pagos parciales: suma de abonos de los que aún no están marcados como pagados
+        abonos_parciales = self.pagos.filter(paid=False).aggregate(
+            total=Sum('abonos__amount')
+        )['total'] or 0
+        return pagados + abonos_parciales
 
 
 class PagoCuota(models.Model):
@@ -172,3 +180,29 @@ class PagoCuota(models.Model):
     def __str__(self):
         status = "pagó" if self.paid else "debe"
         return f"{self.student} {status} {self.cuota.name}"
+
+    @property
+    def total_abonado(self):
+        return sum(a.amount for a in self.abonos.all())
+
+    @property
+    def saldo_pendiente(self):
+        if self.paid:
+            return 0
+        return max(0, self.cuota.amount - self.total_abonado)
+
+
+class Abono(models.Model):
+    pago = models.ForeignKey(PagoCuota, on_delete=models.CASCADE, related_name='abonos', verbose_name="Pago")
+    amount = models.IntegerField(verbose_name="Monto del abono")
+    fecha = models.DateField(verbose_name="Fecha del abono")
+    nota = models.CharField(max_length=200, blank=True, verbose_name="Nota")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Abono"
+        verbose_name_plural = "Abonos"
+        ordering = ['fecha']
+
+    def __str__(self):
+        return f"Abono ${self.amount} — {self.pago.student} ({self.fecha})"
