@@ -11,18 +11,54 @@
     </div>
 </div>
 
-{% if not students %}
+{% if not students_data %}
 <div class="alert alert-info">Actualmente no tienes alumnos asociados a tu cuenta. Contacta al coordinador.</div>
 {% endif %}
 
 <div class="row g-4">
-    {% for student in students %}
+    {% for item in students_data %}
+    {% with student=item.student meta=item.meta falta=item.falta porcentaje=item.porcentaje %}
     <div class="col-12">
         <!-- Encabezado del alumno -->
         <div class="card mb-0 border-bottom-0" style="border-radius: 12px 12px 0 0;">
-            <div class="card-body py-3 d-flex justify-content-between align-items-center">
-                <h4 class="mb-0 fw-bold">{{ student.first_name }} {{ student.last_name }}</h4>
-                <span class="badge bg-success fs-5 px-3 py-2 shadow-sm">Total: ${{ student.total_funds }}</span>
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <h4 class="mb-0 fw-bold">{{ student.first_name }} {{ student.last_name }}</h4>
+                    <div class="d-flex gap-3 align-items-center">
+                        <div class="card border-0 bg-success text-white px-3 py-2 text-center shadow-sm mb-0">
+                            <div class="fs-5 fw-bold">${{ student.total_funds }}</div>
+                            <div class="small">Total acumulado</div>
+                        </div>
+                        {% if meta %}
+                        <div class="card border px-3 py-2 text-center shadow-sm mb-0">
+                            <div class="fs-5 fw-bold {% if falta == 0 %}text-success{% else %}text-warning{% endif %}">
+                                {% if falta == 0 %}Meta ✓{% else %}-${{ falta }}{% endif %}
+                            </div>
+                            <div class="small text-muted">meta ${{ meta }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if meta %}
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Progreso hacia la meta</span>
+                        <span>${{ student.total_funds }} de ${{ meta }} ({{ porcentaje }}%)</span>
+                    </div>
+                    <div class="progress" style="height:10px; border-radius:6px;">
+                        <div class="progress-bar {% if porcentaje >= 100 %}bg-success{% elif porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
+                             role="progressbar"
+                             data-width="{{ porcentaje }}"
+                             aria-valuenow="{{ porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    {% if falta > 0 %}
+                    <div class="small text-muted mt-1">Faltan <strong>${{ falta }}</strong> para alcanzar la meta.</div>
+                    {% else %}
+                    <div class="small text-success mt-1 fw-semibold">¡Meta alcanzada!</div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -55,6 +91,14 @@
                             </tr>
                             {% endfor %}
                         </tbody>
+                        {% if student.distributions.all %}
+                        <tfoot class="table-light border-top">
+                            <tr>
+                                <td colspan="2" class="ps-3 fw-bold text-end small">Total actividades</td>
+                                <td class="text-end pe-3 fw-bold text-success">${{ student.total_actividades }}</td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
                     </table>
                 </div>
             </div>
@@ -113,10 +157,31 @@
                 <div class="p-3 text-center text-muted small">Sin cuotas asignadas aún.</div>
                 {% endif %}
 
+                {% if pagadas or pendientes %}
+                <div class="border-top px-3 py-2 d-flex justify-content-between align-items-center bg-light">
+                    <span class="fw-bold small">Total cuotas</span>
+                    <div class="d-flex gap-3">
+                        {% if pendientes %}
+                        <span class="small text-warning fw-semibold">Pendiente: ${{ student.total_cuotas_pendientes }}</span>
+                        {% endif %}
+                        <span class="small text-success fw-semibold">Pagado: ${{ student.total_cuotas_pagadas }}</span>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% endwith %}
             </div>
         </div>
     </div>
+    {% endwith %}
     {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.progress-bar[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+</script>
 {% endblock %}

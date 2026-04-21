@@ -75,7 +75,13 @@ def dashboard(request):
         return redirect('select_curso')
     # Regular apoderado — show their students
     students = Student.objects.filter(parent=request.user).select_related('curso')
-    context = {'students': students}
+    students_data = []
+    for s in students:
+        meta = s.curso.meta_por_alumno if s.curso else None
+        falta = max(0, meta - s.total_funds) if meta else None
+        porcentaje = min(100, int(s.total_funds * 100 / meta)) if meta and meta > 0 else None
+        students_data.append({'student': s, 'meta': meta, 'falta': falta, 'porcentaje': porcentaje})
+    context = {'students_data': students_data}
     return render(request, 'fondos/dashboard.html', context)
 
 

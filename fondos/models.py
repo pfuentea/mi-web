@@ -106,6 +106,10 @@ class Student(models.Model):
         return sum(p.cuota.amount for p in self.pagos_pagados)
 
     @property
+    def total_cuotas_pendientes(self):
+        return sum(p.cuota.amount for p in self.pagos_pendientes)
+
+    @property
     def total_funds(self):
         return self.total_actividades + self.total_cuotas_pagadas
 
