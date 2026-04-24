@@ -119,8 +119,19 @@
                         {% for pago in pendientes %}
                         <tr class="table-warning">
                             <td class="ps-4 text-muted">{{ pago.cuota.date|date:"d M Y" }}</td>
-                            <td class="fw-semibold">{{ pago.cuota.name }}</td>
-                            <td class="text-end pe-3 text-muted">${{ pago.cuota.amount }}</td>
+                            <td class="fw-semibold">
+                                {{ pago.cuota.name }}
+                                {% if pago.total_abonado > 0 %}
+                                <span class="badge bg-info text-dark ms-1">Parcial</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="text-muted">${{ pago.cuota.amount }}</div>
+                                {% if pago.total_abonado > 0 %}
+                                <div class="small text-success">Abonado: ${{ pago.total_abonado }}</div>
+                                <div class="small text-danger fw-semibold">Saldo: ${{ pago.saldo_pendiente }}</div>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

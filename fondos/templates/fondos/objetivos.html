@@ -1,0 +1,356 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Objetivos | Mis Cuotas{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold">Objetivos</h2>
+        <p class="text-muted mb-0">Define metas de recaudación y asocia actividades, cuotas y gastos a cada una.</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary-custom fw-bold" data-bs-toggle="modal" data-bs-target="#createObjetivoModal">
+            + Nuevo Objetivo
+        </button>
+    </div>
+</div>
+
+<!-- Resumen general del curso -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card border text-center py-3 shadow-sm">
+            <div class="fs-4 fw-bold text-success">${{ total_ingresos_curso }}</div>
+            <div class="small text-muted">Total ingresos del curso</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border text-center py-3 shadow-sm">
+            <div class="fs-4 fw-bold text-danger">${{ total_gastos_curso }}</div>
+            <div class="small text-muted">Total gastos del curso</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border text-center py-3 shadow-sm">
+            <div class="fs-4 fw-bold {% if balance_curso >= 0 %}text-success{% else %}text-danger{% endif %}">${{ balance_curso }}</div>
+            <div class="small text-muted">Balance neto</div>
+        </div>
+    </div>
+</div>
+
+{% if not objetivos_data %}
+<div class="alert alert-info">
+    Aún no hay objetivos creados. Crea el primero con <strong>+ Nuevo Objetivo</strong>.
+</div>
+{% endif %}
+
+<!-- Tarjetas de objetivos -->
+<div class="row g-4">
+    {% for item in objetivos_data %}
+    {% with obj=item.obj %}
+    <div class="col-md-6">
+        <div class="card shadow-sm border h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="fw-bold mb-0">{{ obj.name }}</h5>
+                    {% if obj.descripcion %}
+                    <div class="small text-muted mt-1">{{ obj.descripcion }}</div>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if obj.monto_meta %}
+                    <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#multObjetivoModal{{ obj.id }}">
+                        Multiplicadores
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="modal" data-bs-target="#editObjetivoModal{{ obj.id }}">
+                        Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger"
+                            data-bs-toggle="modal" data-bs-target="#deleteObjetivoModal{{ obj.id }}">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Resumen numérico -->
+                <div class="row g-2 mb-3">
+                    <div class="col-4 text-center">
+                        <div class="fw-bold text-success">${{ item.ingresos_act }}</div>
+                        <div class="small text-muted">Actividades</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="fw-bold text-primary">${{ item.ingresos_cuotas }}</div>
+                        <div class="small text-muted">Cuotas</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="fw-bold text-danger">-${{ item.total_gastos }}</div>
+                        <div class="small text-muted">Gastos</div>
+                    </div>
+                </div>
+                <div class="border-top pt-2 d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold text-muted">Balance</span>
+                    <span class="fw-bold {% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %} fs-5">
+                        ${{ item.balance }}
+                    </span>
+                </div>
+
+                {% if obj.monto_meta %}
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>
+                            Progreso hacia la meta
+                            <span class="text-dark">(meta total: ${{ item.meta_total }})</span>
+                        </span>
+                        <span>${{ item.balance }} de ${{ item.meta_total }} ({{ item.porcentaje }}%)</span>
+                    </div>
+                    <div class="progress" style="height:10px; border-radius:6px;">
+                        <div class="progress-bar {% if item.porcentaje >= 100 %}bg-success{% elif item.porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
+                             role="progressbar" data-width="{{ item.porcentaje }}"
+                             aria-valuenow="{{ item.porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Actividades y cuotas asociadas -->
+                {% if obj.activities.all or obj.cuotas.all %}
+                <div class="mt-3 border-top pt-2">
+                    {% if obj.activities.all %}
+                    <div class="small fw-semibold text-muted mb-1">Actividades</div>
+                    {% for act in obj.activities.all %}
+                    <div class="d-flex justify-content-between small py-1 border-bottom">
+                        <span>{{ act.name }}</span>
+                        <span class="text-success fw-semibold">${{ act.total_amount }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% if obj.cuotas.all %}
+                    <div class="small fw-semibold text-muted mb-1 mt-2">Cuotas</div>
+                    {% for cuota in obj.cuotas.all %}
+                    <div class="d-flex justify-content-between small py-1 border-bottom">
+                        <span>{{ cuota.name }}</span>
+                        <span class="text-primary fw-semibold">${{ cuota.total_recaudado }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% if obj.gastos.all %}
+                    <div class="small fw-semibold text-muted mb-1 mt-2">Gastos</div>
+                    {% for gasto in obj.gastos.all %}
+                    <div class="d-flex justify-content-between small py-1 border-bottom">
+                        <span>{{ gasto.name }}</span>
+                        <span class="text-danger fw-semibold">-${{ gasto.amount }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+
+
+<!-- ===== MODAL CREAR ===== -->
+<div class="modal fade" id="createObjetivoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Nuevo Objetivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre</label>
+            <input type="text" name="name" class="form-control" placeholder="Ej: Paseo de fin de año" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción <span class="text-muted fw-normal">(Opcional)</span></label>
+            <textarea name="descripcion" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Meta por alumno ($) <span class="text-muted fw-normal">(Opcional)</span></label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="monto_meta" class="form-control" placeholder="Ej: 60000" min="0">
+            </div>
+            <div class="form-text">El multiplicador por alumno se configura individualmente luego de crear el objetivo.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary-custom">Crear Objetivo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALES EDITAR / ELIMINAR ===== -->
+{% for item in objetivos_data %}
+{% with obj=item.obj %}
+<div class="modal fade" id="editObjetivoModal{{ obj.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Editar Objetivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit">
+        <input type="hidden" name="objetivo_id" value="{{ obj.id }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre</label>
+            <input type="text" name="name" class="form-control" value="{{ obj.name }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Meta por alumno ($)</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="monto_meta" class="form-control"
+                     value="{{ obj.monto_meta|default:'' }}" min="0">
+            </div>
+            <div class="form-text">Los multiplicadores individuales se gestionan con el botón <strong>Multiplicadores</strong>.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary-custom">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteObjetivoModal{{ obj.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-danger">Eliminar Objetivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">¿Eliminar <strong>{{ obj.name }}</strong>?</p>
+        <p class="small text-muted mb-0">Las actividades, cuotas y gastos asociados quedarán sin objetivo.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="objetivo_id" value="{{ obj.id }}">
+          <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if obj.monto_meta %}
+<!-- ===== MODAL MULTIPLICADORES ===== -->
+<div class="modal fade" id="multObjetivoModal{{ obj.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title fw-bold">Multiplicadores — {{ obj.name }}</h5>
+          <div class="small text-muted mt-1">
+            Meta por alumno: <strong>${{ obj.monto_meta }}</strong> &times; multiplicador individual.
+            Meta total actual: <strong>${{ item.meta_total|default:"—" }}</strong>
+          </div>
+        </div>
+        <button type="button" class="btn-close ms-3" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        {% if item.faltantes > 0 %}
+        <form method="post" class="px-3 pt-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="sync_alumnos">
+          <input type="hidden" name="objetivo_id" value="{{ obj.id }}">
+          <div class="alert alert-warning d-flex align-items-center justify-content-between py-2 mb-0">
+            <span class="small fw-semibold">{{ item.faltantes }} alumno{{ item.faltantes|pluralize }} nuevo{{ item.faltantes|pluralize }} sin registro en este objetivo.</span>
+            <button type="submit" class="btn btn-sm btn-warning fw-semibold ms-3">Sincronizar</button>
+          </div>
+        </form>
+        {% endif %}
+        <form method="post" id="formMult{{ obj.id }}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="set_multiplicador">
+          <input type="hidden" name="objetivo_id" value="{{ obj.id }}">
+          {% if obj.alumnos_meta.all %}
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Alumno</th>
+                <th style="width:140px;">Multiplicador</th>
+                <th class="text-end pe-4">Meta alumno</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entrada in obj.alumnos_meta.all %}
+              <tr>
+                <td class="ps-4 fw-semibold">{{ entrada.student.last_name }}, {{ entrada.student.first_name }}</td>
+                <td>
+                  <input type="number" name="mult_{{ entrada.student.id }}"
+                         value="{{ entrada.multiplicador }}" min="1"
+                         class="form-control form-control-sm mult-input"
+                         data-meta="{{ obj.monto_meta }}"
+                         data-target="preview_{{ obj.id }}_{{ entrada.student.id }}">
+                </td>
+                <td class="text-end pe-4 text-muted small" id="preview_{{ obj.id }}_{{ entrada.student.id }}">
+                  ${{ entrada.meta_alumno }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="p-4 text-muted small">No hay alumnos registrados. Usa <strong>Sincronizar</strong> para agregarlos.</div>
+          {% endif %}
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="formMult{{ obj.id }}" class="btn btn-primary-custom">Guardar multiplicadores</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endwith %}
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.progress-bar[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+
+    // Live preview for per-student multiplicador inputs
+    document.querySelectorAll('.mult-input').forEach(input => {
+        input.addEventListener('input', function () {
+            const meta = parseInt(this.dataset.meta) || 0;
+            const mult = parseInt(this.value) || 1;
+            const preview = document.getElementById(this.dataset.target);
+            if (preview) {
+                preview.textContent = meta > 0 ? '$' + (meta * mult).toLocaleString('es-CL') : '—';
+            }
+        });
+    });
+</script>
+{% endblock %}

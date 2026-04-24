@@ -60,6 +60,7 @@
                 <tr>
                     <th class="ps-4">Fecha</th>
                     <th>Nombre</th>
+                    <th>Objetivo</th>
                     <th>Monto x Alumno</th>
                     <th>Pagaron</th>
                     <th>Pendientes</th>
@@ -72,6 +73,13 @@
                 <tr>
                     <td class="ps-4 text-muted">{{ cuota.date|date:"d M Y" }}</td>
                     <td class="fw-semibold">{{ cuota.name }}</td>
+                    <td>
+                        {% if cuota.objetivo %}
+                        <span class="badge bg-primary">{{ cuota.objetivo.name }}</span>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
                     <td>${{ cuota.amount }}</td>
                     <td><span class="badge bg-success">{{ cuota.pagados }}</span></td>
                     <td>
@@ -96,7 +104,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">No hay cuotas creadas aún.</td>
+                    <td colspan="8" class="text-center py-4 text-muted">No hay cuotas creadas aún.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -128,6 +136,15 @@
                   <label class="form-label fw-semibold">Fecha Actual: {{ cuota.date|date:"d/m/Y" }}</label>
                   <input type="date" name="date" class="form-control">
                   <div class="form-text">Dejar vacío para no cambiarla.</div>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Objetivo</label>
+                  <select name="objetivo_id" class="form-select">
+                      <option value="">Sin objetivo</option>
+                      {% for obj in objetivos %}
+                      <option value="{{ obj.id }}" {% if cuota.objetivo_id == obj.id %}selected{% endif %}>{{ obj.name }}</option>
+                      {% endfor %}
+                  </select>
               </div>
               <div class="mb-3">
                   <label class="form-label fw-semibold">Descripción</label>
@@ -191,6 +208,15 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Fecha</label>
                     <input type="date" name="date" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Objetivo <span class="text-muted fw-normal">(Opcional)</span></label>
+                    <select name="objetivo_id" class="form-select">
+                        <option value="">Sin objetivo</option>
+                        {% for obj in objetivos %}
+                        <option value="{{ obj.id }}">{{ obj.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Descripción (Opcional)</label>

@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Sum, F, Count, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from .models import Student, Activity, FundDistribution, Cuota, PagoCuota, Curso, CursoMembresia, Abono
+from .models import Student, Activity, FundDistribution, Cuota, PagoCuota, Curso, CursoMembresia, Abono, Objetivo, ObjetivoAlumno, Gasto
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .access import get_current_curso, get_user_cursos, can_manage_curso, gestor_required, is_tesorero_principal
@@ -188,15 +188,18 @@ def admin_dashboard(request):
         date = request.POST.get('date')
         description = request.POST.get('description', '')
         total_amount = request.POST.get('total_amount', 0)
+        objetivo_id = request.POST.get('objetivo_id') or None
         if name and date:
             Activity.objects.create(
                 name=name, date=date, description=description,
                 total_amount=total_amount, curso=current_curso,
+                objetivo_id=objetivo_id,
             )
             messages.success(request, 'Actividad creada con éxito.')
             return redirect('admin_dashboard')
 
-    context = {'activities': activities}
+    objetivos = Objetivo.objects.filter(curso=current_curso)
+    context = {'activities': activities, 'objetivos': objetivos}
     return render(request, 'fondos/admin_dashboard.html', context)
 
 
@@ -502,10 +505,12 @@ def cuotas_list(request):
         amount = request.POST.get('amount')
         date = request.POST.get('date')
         description = request.POST.get('description', '')
+        objetivo_id = request.POST.get('objetivo_id') or None
         if name and amount and date:
             cuota = Cuota.objects.create(
                 name=name, amount=int(amount), date=date,
                 description=description, curso=current_curso,
+                objetivo_id=objetivo_id,
             )
             students = Student.objects.filter(curso=current_curso)
             PagoCuota.objects.bulk_create([
@@ -514,11 +519,12 @@ def cuotas_list(request):
             messages.success(request, f'Cuota "{name}" creada para {students.count()} alumnos.')
             return redirect('cuotas_list')
 
-    cuotas = Cuota.objects.filter(curso=current_curso).annotate(
+    cuotas = Cuota.objects.filter(curso=current_curso).select_related('objetivo').annotate(
         pagados=Count('pagos', filter=Q(pagos__paid=True)),
         pendientes=Count('pagos', filter=Q(pagos__paid=False)),
     ).order_by('-date')
-    context = {'cuotas': cuotas}
+    objetivos = Objetivo.objects.filter(curso=current_curso)
+    context = {'cuotas': cuotas, 'objetivos': objetivos}
     return render(request, 'fondos/cuotas.html', context)
 
 
@@ -560,6 +566,7 @@ def edit_cuota(request, cuota_id):
         if amount_str and amount_str.isdigit() and int(amount_str) > 0:
             cuota.amount = int(amount_str)
         cuota.description = request.POST.get('description', cuota.description)
+        cuota.objetivo_id = request.POST.get('objetivo_id') or None
         cuota.save()
         messages.success(request, 'Cuota actualizada correctamente.')
     return redirect('cuotas_list')
@@ -724,6 +731,8 @@ def edit_activity(request, activity_id):
             activity.date = new_date
         activity.total_amount = request.POST.get('total_amount', activity.total_amount)
         activity.description = request.POST.get('description', activity.description)
+        objetivo_id = request.POST.get('objetivo_id') or None
+        activity.objetivo_id = objetivo_id
         activity.save()
         messages.success(request, 'Actividad actualizada correctamente.')
     return redirect('admin_dashboard')
@@ -1093,6 +1102,169 @@ def _generar_reporte_pdf(request, current_curso, tipo_reporte):
     response = HttpResponse(buf.read(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     return response
+
+
+# ─── OBJETIVOS ────────────────────────────────────────────────────────────────
+
+@gestor_required
+def objetivos(request):
+    current_curso = get_current_curso(request)
+
+    students_curso = Student.objects.filter(curso=current_curso).order_by('last_name', 'first_name')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            name = request.POST.get('name', '').strip()
+            descripcion = request.POST.get('descripcion', '').strip()
+            meta_str = request.POST.get('monto_meta', '').strip()
+            if name:
+                obj = Objetivo.objects.create(
+                    curso=current_curso, name=name, descripcion=descripcion,
+                    monto_meta=int(meta_str) if meta_str.isdigit() else None,
+                )
+                # Auto-crear entradas para todos los alumnos con multiplicador=1
+                ObjetivoAlumno.objects.bulk_create([
+                    ObjetivoAlumno(objetivo=obj, student=s, multiplicador=1)
+                    for s in students_curso
+                ])
+                messages.success(request, f'Objetivo "{name}" creado para {students_curso.count()} alumno(s).')
+            else:
+                messages.error(request, 'El nombre es requerido.')
+        elif action == 'edit':
+            obj_id = request.POST.get('objetivo_id')
+            obj = get_object_or_404(Objetivo, id=obj_id, curso=current_curso)
+            obj.name = request.POST.get('name', obj.name).strip()
+            obj.descripcion = request.POST.get('descripcion', '').strip()
+            meta_str = request.POST.get('monto_meta', '').strip()
+            obj.monto_meta = int(meta_str) if meta_str.isdigit() else None
+            obj.save()
+            messages.success(request, 'Objetivo actualizado.')
+        elif action == 'set_multiplicador':
+            # Actualizar multiplicadores por alumno para un objetivo
+            obj_id = request.POST.get('objetivo_id')
+            obj = get_object_or_404(Objetivo, id=obj_id, curso=current_curso)
+            for s in students_curso:
+                mult_str = request.POST.get(f'mult_{s.id}', '1').strip()
+                mult = int(mult_str) if mult_str.isdigit() and int(mult_str) >= 1 else 1
+                ObjetivoAlumno.objects.update_or_create(
+                    objetivo=obj, student=s,
+                    defaults={'multiplicador': mult},
+                )
+            messages.success(request, 'Multiplicadores actualizados.')
+        elif action == 'sync_alumnos':
+            # Agregar alumnos nuevos que no tengan entrada aún
+            obj_id = request.POST.get('objetivo_id')
+            obj = get_object_or_404(Objetivo, id=obj_id, curso=current_curso)
+            existing_ids = obj.alumnos_meta.values_list('student_id', flat=True)
+            nuevos = students_curso.exclude(id__in=existing_ids)
+            ObjetivoAlumno.objects.bulk_create([
+                ObjetivoAlumno(objetivo=obj, student=s, multiplicador=1) for s in nuevos
+            ])
+            if nuevos:
+                messages.success(request, f'{nuevos.count()} alumno(s) agregado(s) al objetivo.')
+            else:
+                messages.info(request, 'Todos los alumnos ya están registrados.')
+        elif action == 'delete':
+            obj_id = request.POST.get('objetivo_id')
+            obj = get_object_or_404(Objetivo, id=obj_id, curso=current_curso)
+            obj.delete()
+            messages.success(request, 'Objetivo eliminado.')
+        return redirect('objetivos')
+
+    # Calcular ingresos y gastos por objetivo
+    all_objetivos = Objetivo.objects.filter(curso=current_curso).prefetch_related(
+        'alumnos_meta__student', 'activities', 'cuotas', 'gastos'
+    )
+    objetivos_data = []
+    for obj in all_objetivos:
+        ingresos_act = sum(a.total_amount for a in obj.activities.all())
+        ingresos_cuotas = sum(c.total_recaudado for c in obj.cuotas.all())
+        total_ingresos = ingresos_act + ingresos_cuotas
+        total_gastos = sum(g.amount for g in obj.gastos.all())
+        balance = total_ingresos - total_gastos
+        meta_total = obj.monto_meta_total
+        porcentaje = min(100, int(balance * 100 / meta_total)) if meta_total and meta_total > 0 else None
+        # Alumnos faltantes (no tienen entrada)
+        existing_ids = [e.student_id for e in obj.alumnos_meta.all()]
+        faltantes = sum(1 for s in students_curso if s.id not in existing_ids)
+        objetivos_data.append({
+            'obj': obj,
+            'ingresos_act': ingresos_act,
+            'ingresos_cuotas': ingresos_cuotas,
+            'total_ingresos': total_ingresos,
+            'total_gastos': total_gastos,
+            'balance': balance,
+            'meta_total': meta_total,
+            'porcentaje': porcentaje,
+            'faltantes': faltantes,
+        })
+
+    # Totales del curso (sin filtrar por objetivo)
+    total_ingresos_curso = (
+        sum(a.total_amount for a in Activity.objects.filter(curso=current_curso)) +
+        sum(c.total_recaudado for c in Cuota.objects.filter(curso=current_curso))
+    )
+    total_gastos_curso = sum(g.amount for g in Gasto.objects.filter(curso=current_curso))
+
+    context = {
+        'objetivos_data': objetivos_data,
+        'total_ingresos_curso': total_ingresos_curso,
+        'total_gastos_curso': total_gastos_curso,
+        'balance_curso': total_ingresos_curso - total_gastos_curso,
+    }
+    return render(request, 'fondos/objetivos.html', context)
+
+
+# ─── GASTOS ───────────────────────────────────────────────────────────────────
+
+@gestor_required
+def gastos_list(request):
+    current_curso = get_current_curso(request)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            name = request.POST.get('name', '').strip()
+            amount_str = request.POST.get('amount', '').strip()
+            date_str = request.POST.get('date', '').strip()
+            nota = request.POST.get('nota', '').strip()
+            objetivo_id = request.POST.get('objetivo_id') or None
+            if name and amount_str.isdigit() and int(amount_str) > 0 and date_str:
+                Gasto.objects.create(
+                    curso=current_curso, name=name, amount=int(amount_str),
+                    date=date_str, nota=nota, objetivo_id=objetivo_id,
+                )
+                messages.success(request, f'Gasto "{name}" registrado.')
+            else:
+                messages.error(request, 'Nombre, monto y fecha son requeridos.')
+        elif action == 'edit':
+            gasto_id = request.POST.get('gasto_id')
+            gasto = get_object_or_404(Gasto, id=gasto_id, curso=current_curso)
+            gasto.name = request.POST.get('name', gasto.name).strip()
+            amount_str = request.POST.get('amount', '').strip()
+            if amount_str.isdigit() and int(amount_str) > 0:
+                gasto.amount = int(amount_str)
+            date_str = request.POST.get('date', '').strip()
+            if date_str:
+                gasto.date = date_str
+            gasto.nota = request.POST.get('nota', '').strip()
+            gasto.objetivo_id = request.POST.get('objetivo_id') or None
+            gasto.save()
+            messages.success(request, 'Gasto actualizado.')
+        elif action == 'delete':
+            gasto_id = request.POST.get('gasto_id')
+            gasto = get_object_or_404(Gasto, id=gasto_id, curso=current_curso)
+            gasto.delete()
+            messages.success(request, 'Gasto eliminado.')
+        return redirect('gastos_list')
+
+    gastos = Gasto.objects.filter(curso=current_curso).select_related('objetivo').order_by('-date')
+    objetivos = Objetivo.objects.filter(curso=current_curso)
+    total_gastos = sum(g.amount for g in gastos)
+    context = {'gastos': gastos, 'objetivos': objetivos, 'total_gastos': total_gastos,
+               'today': timezone.localdate().isoformat()}
+    return render(request, 'fondos/gastos.html', context)
 
 
 @gestor_required

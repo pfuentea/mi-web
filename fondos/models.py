@@ -99,7 +99,7 @@ class Student(models.Model):
 
     @property
     def pagos_pendientes(self):
-        return self.pagos.filter(paid=False).select_related('cuota').order_by('-cuota__date')
+        return self.pagos.filter(paid=False).select_related('cuota').prefetch_related('abonos').order_by('-cuota__date')
 
     @property
     def total_cuotas_pagadas(self):
@@ -114,12 +114,40 @@ class Student(models.Model):
         return self.total_actividades + self.total_cuotas_pagadas
 
 
+class Objetivo(models.Model):
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='objetivos', verbose_name="Curso")
+    name = models.CharField(max_length=200, verbose_name="Nombre")
+    descripcion = models.TextField(blank=True, verbose_name="Descripción")
+    monto_meta = models.IntegerField(null=True, blank=True, verbose_name="Meta por unidad ($)")
+    multiplicador = models.IntegerField(default=1, verbose_name="Multiplicador")
+
+    class Meta:
+        verbose_name = "Objetivo"
+        verbose_name_plural = "Objetivos"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def monto_meta_total(self):
+        """Suma de monto_meta × multiplicador por cada alumno registrado.
+        Si no hay entradas por alumno, usa el multiplicador global del objetivo."""
+        if not self.monto_meta:
+            return None
+        entradas = self.alumnos_meta.all()
+        if entradas.exists():
+            return self.monto_meta * sum(e.multiplicador for e in entradas)
+        return self.monto_meta * self.multiplicador
+
+
 class Activity(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nombre de la Actividad")
     date = models.DateField(verbose_name="Fecha")
     description = models.TextField(blank=True, verbose_name="Descripción")
     total_amount = models.IntegerField(default=0, verbose_name="Monto total a repartir (opcional)", help_text="Monto referencial")
     curso = models.ForeignKey(Curso, on_delete=models.SET_NULL, null=True, blank=True, related_name='activities', verbose_name="Curso")
+    objetivo = models.ForeignKey('Objetivo', on_delete=models.SET_NULL, null=True, blank=True, related_name='activities', verbose_name="Objetivo")
 
     class Meta:
         verbose_name = "Actividad"
@@ -149,6 +177,7 @@ class Cuota(models.Model):
     date = models.DateField(verbose_name="Fecha")
     description = models.TextField(blank=True, verbose_name="Descripción")
     curso = models.ForeignKey(Curso, on_delete=models.SET_NULL, null=True, blank=True, related_name='cuotas', verbose_name="Curso")
+    objetivo = models.ForeignKey('Objetivo', on_delete=models.SET_NULL, null=True, blank=True, related_name='cuotas', verbose_name="Objetivo")
 
     class Meta:
         verbose_name = "Cuota"
@@ -210,3 +239,39 @@ class Abono(models.Model):
 
     def __str__(self):
         return f"Abono ${self.amount} — {self.pago.student} ({self.fecha})"
+
+
+class ObjetivoAlumno(models.Model):
+    objetivo = models.ForeignKey(Objetivo, on_delete=models.CASCADE, related_name='alumnos_meta', verbose_name="Objetivo")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='objetivos_meta', verbose_name="Alumno")
+    multiplicador = models.IntegerField(default=1, verbose_name="Multiplicador")
+
+    class Meta:
+        verbose_name = "Meta por Alumno"
+        verbose_name_plural = "Metas por Alumno"
+        unique_together = ['objetivo', 'student']
+        ordering = ['student__last_name', 'student__first_name']
+
+    def __str__(self):
+        return f"{self.student} — {self.objetivo.name} ×{self.multiplicador}"
+
+    @property
+    def meta_alumno(self):
+        return (self.objetivo.monto_meta or 0) * self.multiplicador
+
+
+class Gasto(models.Model):
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='gastos', verbose_name="Curso")
+    objetivo = models.ForeignKey(Objetivo, on_delete=models.SET_NULL, null=True, blank=True, related_name='gastos', verbose_name="Objetivo")
+    name = models.CharField(max_length=200, verbose_name="Nombre / Descripción")
+    amount = models.IntegerField(verbose_name="Monto")
+    date = models.DateField(verbose_name="Fecha")
+    nota = models.CharField(max_length=300, blank=True, verbose_name="Nota")
+
+    class Meta:
+        verbose_name = "Gasto"
+        verbose_name_plural = "Gastos"
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.name} (${self.amount})"

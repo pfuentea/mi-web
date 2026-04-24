@@ -59,6 +59,7 @@
                 <tr>
                     <th class="ps-4">Fecha</th>
                     <th>Nombre</th>
+                    <th>Objetivo</th>
                     <th>Monto Ref.</th>
                     <th>Repartido</th>
                     <th>Por Repartir</th>
@@ -70,6 +71,13 @@
                 <tr>
                     <td class="ps-4 text-muted">{{ activity.date|date:"d M Y" }}</td>
                     <td class="fw-semibold">{{ activity.name }}</td>
+                    <td>
+                        {% if activity.objetivo %}
+                        <span class="badge bg-primary">{{ activity.objetivo.name }}</span>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
                     <td>${{ activity.total_amount }}</td>
                     <td><span class="badge bg-success">${{ activity.monto_repartido }}</span></td>
                     <td>
@@ -97,7 +105,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No has creado ninguna actividad aún.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -129,6 +137,15 @@
               <div class="mb-3">
                   <label class="form-label fw-semibold">Monto Referencial</label>
                   <input type="number" name="total_amount" class="form-control" value="{{ activity.total_amount }}">
+              </div>
+              <div class="mb-3">
+                  <label class="form-label fw-semibold">Objetivo</label>
+                  <select name="objetivo_id" class="form-select">
+                      <option value="">Sin objetivo</option>
+                      {% for obj in objetivos %}
+                      <option value="{{ obj.id }}" {% if activity.objetivo_id == obj.id %}selected{% endif %}>{{ obj.name }}</option>
+                      {% endfor %}
+                  </select>
               </div>
               <div class="mb-3">
                   <label class="form-label fw-semibold">Descripción</label>
@@ -193,6 +210,15 @@
                     <label class="form-label fw-semibold">Monto Referencial (Opcional)</label>
                     <input type="number" name="total_amount" class="form-control" value="0">
                     <div class="form-text">Esto es sólo para organizarte, la división real la harás después.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Objetivo <span class="text-muted fw-normal">(Opcional)</span></label>
+                    <select name="objetivo_id" class="form-select">
+                        <option value="">Sin objetivo</option>
+                        {% for obj in objetivos %}
+                        <option value="{{ obj.id }}">{{ obj.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Descripción</label>

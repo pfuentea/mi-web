@@ -1,0 +1,213 @@
+{% extends "fondos/base.html" %}
+
+{% block title %}Gastos | Mis Cuotas{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold">Gastos</h2>
+        <p class="text-muted mb-0">Registra los gastos del curso y asócialos a un objetivo si corresponde.</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary-custom fw-bold" data-bs-toggle="modal" data-bs-target="#createGastoModal">
+            + Nuevo Gasto
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm border">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">Listado de Gastos</h5>
+        {% if total_gastos > 0 %}
+        <span class="badge bg-danger fs-6">${{ total_gastos }} total</span>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Fecha</th>
+                    <th>Nombre</th>
+                    <th>Objetivo</th>
+                    <th>Nota</th>
+                    <th class="text-end pe-3">Monto</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gasto in gastos %}
+                <tr>
+                    <td class="ps-4 text-muted">{{ gasto.date|date:"d M Y" }}</td>
+                    <td class="fw-semibold">{{ gasto.name }}</td>
+                    <td>
+                        {% if gasto.objetivo %}
+                        <span class="badge bg-primary">{{ gasto.objetivo.name }}</span>
+                        {% else %}
+                        <span class="text-muted small">Sin objetivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">{{ gasto.nota|default:"—" }}</td>
+                    <td class="text-end pe-3 fw-bold text-danger">${{ gasto.amount }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" data-bs-target="#editGastoModal{{ gasto.id }}">
+                            Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger ms-1"
+                                data-bs-toggle="modal" data-bs-target="#deleteGastoModal{{ gasto.id }}">
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No hay gastos registrados aún.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if gastos %}
+            <tfoot class="table-light border-top">
+                <tr>
+                    <td colspan="4" class="ps-4 fw-bold text-end">Total gastos</td>
+                    <td class="text-end pe-3 fw-bold text-danger">${{ total_gastos }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+
+<!-- ===== MODAL CREAR ===== -->
+<div class="modal fade" id="createGastoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Registrar Gasto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción del gasto</label>
+            <input type="text" name="name" class="form-control" placeholder="Ej: Arriendo local kermesse" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Monto</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="amount" class="form-control" min="1" required>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Fecha</label>
+              <input type="date" name="date" class="form-control" value="{{ today }}" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Objetivo <span class="text-muted fw-normal">(Opcional)</span></label>
+            <select name="objetivo_id" class="form-select">
+              <option value="">Sin objetivo</option>
+              {% for obj in objetivos %}
+              <option value="{{ obj.id }}">{{ obj.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nota <span class="text-muted fw-normal">(Opcional)</span></label>
+            <input type="text" name="nota" class="form-control" placeholder="Ej: Boleta N°1234">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary-custom">Registrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALES EDITAR / ELIMINAR ===== -->
+{% for gasto in gastos %}
+<div class="modal fade" id="editGastoModal{{ gasto.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Editar Gasto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit">
+        <input type="hidden" name="gasto_id" value="{{ gasto.id }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <input type="text" name="name" class="form-control" value="{{ gasto.name }}" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Monto</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="amount" class="form-control" value="{{ gasto.amount }}" min="1" required>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Fecha</label>
+              <input type="date" name="date" class="form-control" value="{{ gasto.date|date:'Y-m-d' }}">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Objetivo</label>
+            <select name="objetivo_id" class="form-select">
+              <option value="">Sin objetivo</option>
+              {% for obj in objetivos %}
+              <option value="{{ obj.id }}" {% if gasto.objetivo_id == obj.id %}selected{% endif %}>{{ obj.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nota</label>
+            <input type="text" name="nota" class="form-control" value="{{ gasto.nota }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary-custom">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteGastoModal{{ gasto.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-danger">Eliminar Gasto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">¿Eliminar <strong>{{ gasto.name }}</strong>?</p>
+        <p class="small text-muted mb-0">Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="gasto_id" value="{{ gasto.id }}">
+          <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

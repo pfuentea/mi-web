@@ -69,6 +69,12 @@
                                 <a class="nav-link" href="{% url 'cuotas_list' %}">Cuotas</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{% url 'objetivos' %}">Objetivos</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'gastos_list' %}">Gastos</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{% url 'reportes' %}">Reportes</a>
                             </li>
                             {% if user.is_staff %}
