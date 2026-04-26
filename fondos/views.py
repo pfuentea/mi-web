@@ -74,13 +74,16 @@ def dashboard(request):
             return redirect('admin_home')
         return redirect('select_curso')
     # Regular apoderado — show their students
-    students = Student.objects.filter(parent=request.user).select_related('curso')
+    students = Student.objects.filter(parent=request.user).select_related('curso').prefetch_related('distributions__activity__objetivo')
     students_data = []
     for s in students:
         meta = s.curso.meta_por_alumno if s.curso else None
         falta = max(0, meta - s.total_funds) if meta else None
         porcentaje = min(100, int(s.total_funds * 100 / meta)) if meta and meta > 0 else None
-        students_data.append({'student': s, 'meta': meta, 'falta': falta, 'porcentaje': porcentaje})
+        students_data.append({
+            'student': s, 'meta': meta, 'falta': falta, 'porcentaje': porcentaje,
+            'objetivos_alumno': _get_objetivos_alumno(s),
+        })
     context = {'students_data': students_data}
     return render(request, 'fondos/dashboard.html', context)
 
@@ -480,7 +483,7 @@ def apoderado_detail(request, user_id):
 @gestor_required
 def student_detail(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-    distributions = FundDistribution.objects.filter(student=student).select_related('activity').order_by('-activity__date')
+    distributions = FundDistribution.objects.filter(student=student).select_related('activity__objetivo').order_by('-activity__date')
     pagos_cuotas = PagoCuota.objects.filter(student=student).select_related('cuota').order_by('-cuota__date')
     meta = student.curso.meta_por_alumno if student.curso else None
     falta = max(0, meta - student.total_funds) if meta else None
@@ -492,6 +495,7 @@ def student_detail(request, student_id):
         'meta': meta,
         'falta': falta,
         'porcentaje': porcentaje,
+        'objetivos_alumno': _get_objetivos_alumno(student),
     }
     return render(request, 'fondos/student_detail.html', context)
 
@@ -1105,6 +1109,40 @@ def _generar_reporte_pdf(request, current_curso, tipo_reporte):
 
 
 # ─── OBJETIVOS ────────────────────────────────────────────────────────────────
+
+def _get_objetivos_alumno(student):
+    """Devuelve lista de dicts con el aporte y meta individual del alumno por cada objetivo."""
+    if not student.curso:
+        return []
+    objetivos = Objetivo.objects.filter(curso=student.curso)
+    result = []
+    for obj in objetivos:
+        aporte_act = FundDistribution.objects.filter(
+            student=student, activity__objetivo=obj
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        aporte_cuotas = PagoCuota.objects.filter(
+            student=student, cuota__objetivo=obj, paid=True
+        ).aggregate(total=Sum('cuota__amount'))['total'] or 0
+        total = aporte_act + aporte_cuotas
+        # Meta individual del alumno para este objetivo
+        try:
+            entrada = ObjetivoAlumno.objects.get(objetivo=obj, student=student)
+            meta = entrada.meta_alumno
+        except ObjetivoAlumno.DoesNotExist:
+            meta = obj.monto_meta
+        porcentaje = min(100, int(total * 100 / meta)) if meta and meta > 0 else None
+        falta = max(0, meta - total) if meta else None
+        result.append({
+            'obj': obj,
+            'total': total,
+            'aporte_act': aporte_act,
+            'aporte_cuotas': aporte_cuotas,
+            'meta': meta,
+            'porcentaje': porcentaje,
+            'falta': falta,
+        })
+    return result
+
 
 @gestor_required
 def objetivos(request):

@@ -19,40 +19,50 @@
             {% endif %}
         </p>
     </div>
-    <div class="col-auto d-flex gap-3 align-items-center">
+    <div class="col-auto">
         <div class="card border-0 bg-success text-white px-4 py-3 text-center shadow-sm">
             <div class="fs-4 fw-bold">${{ student.total_funds }}</div>
             <div class="small">Total acumulado</div>
         </div>
-        {% if meta %}
-        <div class="card border px-4 py-3 text-center shadow-sm" style="min-width:140px;">
-            <div class="fs-4 fw-bold {% if falta == 0 %}text-success{% else %}text-warning{% endif %}">
-                {% if falta == 0 %}Meta ✓{% else %}-${{ falta }}{% endif %}
-            </div>
-            <div class="small text-muted">meta ${{ meta }}</div>
-        </div>
-        {% endif %}
     </div>
 </div>
 
-{% if meta %}
-<div class="mb-4">
-    <div class="d-flex justify-content-between small text-muted mb-1">
-        <span>Progreso hacia la meta</span>
-        <span>${{ student.total_funds }} de ${{ meta }} ({{ porcentaje }}%)</span>
-    </div>
-    <div class="progress" style="height:12px; border-radius:6px;">
-        <div class="progress-bar {% if porcentaje >= 100 %}bg-success{% elif porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
-             role="progressbar"
-             data-width="{{ porcentaje }}"
-             aria-valuenow="{{ porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+{% if objetivos_alumno %}
+<div class="row g-3 mb-4">
+    {% for op in objetivos_alumno %}
+    <div class="col-md-4 col-sm-6">
+        <div class="card border shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="fw-semibold small">{{ op.obj.name }}</span>
+                    {% if op.porcentaje is not None %}
+                    <span class="badge {% if op.porcentaje >= 100 %}bg-success{% elif op.porcentaje >= 60 %}bg-primary{% else %}bg-warning text-dark{% endif %} ms-2">
+                        {{ op.porcentaje }}%
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-success fw-semibold">${{ op.total }}</span>
+                    {% if op.meta %}<span class="text-muted">meta ${{ op.meta }}</span>{% endif %}
+                </div>
+                {% if op.meta %}
+                <div class="progress" style="height:7px; border-radius:6px;">
+                    <div class="progress-bar {% if op.porcentaje >= 100 %}bg-success{% elif op.porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
+                         role="progressbar"
+                         data-width="{{ op.porcentaje }}"
+                         aria-valuenow="{{ op.porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                {% if op.falta %}
+                <div class="small text-muted mt-1">Faltan <strong>${{ op.falta }}</strong></div>
+                {% else %}
+                <div class="small text-success mt-1 fw-semibold">¡Meta cumplida!</div>
+                {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
-    {% if falta > 0 %}
-    <div class="small text-muted mt-1">Faltan <strong>${{ falta }}</strong> para alcanzar la meta.</div>
-    {% else %}
-    <div class="small text-success mt-1 fw-semibold">¡Meta alcanzada!</div>
-    {% endif %}
+    {% endfor %}
 </div>
 {% endif %}
 
@@ -70,6 +80,7 @@
                         <tr>
                             <th class="ps-4">Fecha</th>
                             <th>Actividad</th>
+                            <th>Objetivo</th>
                             <th class="text-end pe-3">Monto</th>
                         </tr>
                     </thead>
@@ -78,6 +89,13 @@
                         <tr>
                             <td class="ps-4 text-muted">{{ dist.activity.date|date:"d M Y" }}</td>
                             <td class="fw-semibold">{{ dist.activity.name }}</td>
+                            <td>
+                                {% if dist.activity.objetivo %}
+                                <span class="badge bg-primary">{{ dist.activity.objetivo.name }}</span>
+                                {% else %}
+                                <span class="text-muted small">N/A</span>
+                                {% endif %}
+                            </td>
                             <td class="text-end pe-3"><span class="badge bg-success">${{ dist.amount }}</span></td>
                         </tr>
                         {% empty %}
@@ -89,7 +107,7 @@
                     {% if distributions %}
                     <tfoot class="table-light border-top">
                         <tr>
-                            <td colspan="2" class="ps-4 fw-bold text-end">Total actividades</td>
+                            <td colspan="3" class="ps-4 fw-bold text-end">Total actividades</td>
                             <td class="text-end pe-3 fw-bold text-success">${{ student.total_actividades }}</td>
                         </tr>
                     </tfoot>

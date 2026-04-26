@@ -17,46 +17,52 @@
 
 <div class="row g-4">
     {% for item in students_data %}
-    {% with student=item.student meta=item.meta falta=item.falta porcentaje=item.porcentaje %}
+    {% with student=item.student %}
     <div class="col-12">
         <!-- Encabezado del alumno -->
         <div class="card mb-0 border-bottom-0" style="border-radius: 12px 12px 0 0;">
             <div class="card-body py-3">
-                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-2">
                     <h4 class="mb-0 fw-bold">{{ student.first_name }} {{ student.last_name }}</h4>
-                    <div class="d-flex gap-3 align-items-center">
-                        <div class="card border-0 bg-success text-white px-3 py-2 text-center shadow-sm mb-0">
-                            <div class="fs-5 fw-bold">${{ student.total_funds }}</div>
-                            <div class="small">Total acumulado</div>
-                        </div>
-                        {% if meta %}
-                        <div class="card border px-3 py-2 text-center shadow-sm mb-0">
-                            <div class="fs-5 fw-bold {% if falta == 0 %}text-success{% else %}text-warning{% endif %}">
-                                {% if falta == 0 %}Meta ✓{% else %}-${{ falta }}{% endif %}
-                            </div>
-                            <div class="small text-muted">meta ${{ meta }}</div>
-                        </div>
-                        {% endif %}
+                    <div class="card border-0 bg-success text-white px-3 py-2 text-center shadow-sm mb-0">
+                        <div class="fs-5 fw-bold">${{ student.total_funds }}</div>
+                        <div class="small">Total acumulado</div>
                     </div>
                 </div>
-                {% if meta %}
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>Progreso hacia la meta</span>
-                        <span>${{ student.total_funds }} de ${{ meta }} ({{ porcentaje }}%)</span>
-                    </div>
-                    <div class="progress" style="height:10px; border-radius:6px;">
-                        <div class="progress-bar {% if porcentaje >= 100 %}bg-success{% elif porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
-                             role="progressbar"
-                             data-width="{{ porcentaje }}"
-                             aria-valuenow="{{ porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                {% if item.objetivos_alumno %}
+                <div class="row g-2 mt-1">
+                    {% for op in item.objetivos_alumno %}
+                    <div class="col-sm-6 col-md-4">
+                        <div class="border rounded p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="small fw-semibold">{{ op.obj.name }}</span>
+                                {% if op.porcentaje is not None %}
+                                <span class="badge {% if op.porcentaje >= 100 %}bg-success{% elif op.porcentaje >= 60 %}bg-primary{% else %}bg-warning text-dark{% endif %} ms-1">
+                                    {{ op.porcentaje }}%
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-success fw-semibold">${{ op.total }}</span>
+                                {% if op.meta %}<span class="text-muted">meta ${{ op.meta }}</span>{% endif %}
+                            </div>
+                            {% if op.meta %}
+                            <div class="progress" style="height:5px; border-radius:4px;">
+                                <div class="progress-bar {% if op.porcentaje >= 100 %}bg-success{% elif op.porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
+                                     role="progressbar"
+                                     data-width="{{ op.porcentaje }}"
+                                     aria-valuenow="{{ op.porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                            {% if op.falta %}
+                            <div class="small text-muted mt-1">Faltan ${{ op.falta }}</div>
+                            {% else %}
+                            <div class="small text-success mt-1">¡Meta cumplida!</div>
+                            {% endif %}
+                            {% endif %}
                         </div>
                     </div>
-                    {% if falta > 0 %}
-                    <div class="small text-muted mt-1">Faltan <strong>${{ falta }}</strong> para alcanzar la meta.</div>
-                    {% else %}
-                    <div class="small text-success mt-1 fw-semibold">¡Meta alcanzada!</div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
                 {% endif %}
             </div>
@@ -75,6 +81,7 @@
                             <tr>
                                 <th class="ps-3">Fecha</th>
                                 <th>Actividad</th>
+                                <th>Objetivo</th>
                                 <th class="text-end pe-3">Monto</th>
                             </tr>
                         </thead>
@@ -83,6 +90,13 @@
                             <tr>
                                 <td class="ps-3 text-muted small">{{ dist.activity.date|date:"d M Y" }}</td>
                                 <td>{{ dist.activity.name }}</td>
+                                <td>
+                                    {% if dist.activity.objetivo %}
+                                    <span class="badge bg-primary">{{ dist.activity.objetivo.name }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">N/A</span>
+                                    {% endif %}
+                                </td>
                                 <td class="text-end pe-3 text-success fw-bold">+${{ dist.amount }}</td>
                             </tr>
                             {% empty %}
@@ -94,7 +108,7 @@
                         {% if student.distributions.all %}
                         <tfoot class="table-light border-top">
                             <tr>
-                                <td colspan="2" class="ps-3 fw-bold text-end small">Total actividades</td>
+                                <td colspan="3" class="ps-3 fw-bold text-end small">Total actividades</td>
                                 <td class="text-end pe-3 fw-bold text-success">${{ student.total_actividades }}</td>
                             </tr>
                         </tfoot>
@@ -183,6 +197,7 @@
                 {% endwith %}
             </div>
         </div>
+
     </div>
     {% endwith %}
     {% endfor %}
