@@ -84,6 +84,77 @@
     </div>
 </div>
 
+<!-- Balance Ingresos vs Gastos -->
+<div class="row mb-2 align-items-center">
+    <div class="col">
+        <h5 class="fw-bold mb-0">Balance del Curso</h5>
+        <p class="text-muted small mb-0">Ingresos recaudados versus gastos registrados.</p>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'gastos_list' %}" class="btn btn-sm btn-outline-secondary">Ver Gastos</a>
+        <a href="{% url 'objetivos' %}" class="btn btn-sm btn-outline-secondary ms-1">Ver Objetivos</a>
+    </div>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-sm-4">
+        <div class="card shadow-sm border text-center py-3 h-100">
+            <div class="fs-4 fw-bold text-success">${{ total_ingresos }}</div>
+            <div class="text-muted small mt-1">Total Ingresos</div>
+            <div class="text-muted" style="font-size:0.75rem;">Act. ${{ total_act_ingresos }} · Cuotas ${{ total_cuotas_recaudado }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card shadow-sm border text-center py-3 h-100">
+            <div class="fs-4 fw-bold text-danger">${{ total_gastos }}</div>
+            <div class="text-muted small mt-1">Total Gastos</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card shadow-sm border text-center py-3 h-100">
+            <div class="fs-4 fw-bold {% if balance_neto >= 0 %}text-success{% else %}text-danger{% endif %}">${{ balance_neto }}</div>
+            <div class="text-muted small mt-1">Balance Neto</div>
+        </div>
+    </div>
+</div>
+
+{% if objetivos_balance %}
+<div class="row g-3 mb-5">
+    {% for ob in objetivos_balance %}
+    <div class="col-sm-6 col-md-4">
+        <div class="card shadow-sm border h-100">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="fw-semibold small">{{ ob.obj.name }}</span>
+                    {% if ob.porcentaje is not None %}
+                    <span class="badge {% if ob.porcentaje >= 100 %}bg-success{% elif ob.porcentaje >= 60 %}bg-primary{% else %}bg-warning text-dark{% endif %} ms-2">
+                        {{ ob.porcentaje }}%
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-success">+${{ ob.ingresos }}</span>
+                    <span class="text-danger">-${{ ob.gastos }}</span>
+                    <span class="fw-bold {% if ob.balance >= 0 %}text-success{% else %}text-danger{% endif %}">${{ ob.balance }}</span>
+                </div>
+                {% if ob.meta %}
+                <div class="progress mt-1" style="height:6px; border-radius:4px;">
+                    <div class="progress-bar {% if ob.porcentaje >= 100 %}bg-success{% elif ob.porcentaje >= 60 %}bg-primary{% else %}bg-warning{% endif %}"
+                         role="progressbar"
+                         data-width="{{ ob.porcentaje }}"
+                         aria-valuenow="{{ ob.porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                <div class="small text-muted mt-1">Meta: ${{ ob.meta }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="mb-5"></div>
+{% endif %}
+
 <!-- Guía Rápida -->
 <div class="row mb-2 align-items-center">
     <div class="col">
@@ -247,4 +318,12 @@
   </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.progress-bar[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+</script>
 {% endblock %}

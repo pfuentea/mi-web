@@ -164,6 +164,30 @@ def admin_home(request):
     ).annotate(monto=F('cuota__amount')).aggregate(t=Sum('monto'))['t'] or 0
     monto_promedio = (total_dist + total_cuotas_monto) // alumnos if alumnos else 0
 
+    # Balance ingresos vs gastos
+    total_act_ingresos = Activity.objects.filter(curso=current_curso).aggregate(
+        t=Sum('total_amount'))['t'] or 0
+    abonos_parciales = Abono.objects.filter(
+        pago__cuota__curso=current_curso, pago__paid=False
+    ).aggregate(t=Sum('amount'))['t'] or 0
+    total_cuotas_recaudado = total_cuotas_monto + abonos_parciales
+    total_ingresos = total_act_ingresos + total_cuotas_recaudado
+    total_gastos = Gasto.objects.filter(curso=current_curso).aggregate(
+        t=Sum('amount'))['t'] or 0
+    balance_neto = total_ingresos - total_gastos
+
+    # Progreso por objetivo
+    objetivos_balance = []
+    for obj in Objetivo.objects.filter(curso=current_curso).prefetch_related('activities', 'cuotas', 'gastos'):
+        ing_act = sum(a.total_amount for a in obj.activities.all())
+        ing_cuotas = sum(c.total_recaudado for c in obj.cuotas.all())
+        ing = ing_act + ing_cuotas
+        gas = sum(g.amount for g in obj.gastos.all())
+        bal = ing - gas
+        meta = obj.monto_meta_total
+        porc = min(100, int(bal * 100 / meta)) if meta and meta > 0 else None
+        objetivos_balance.append({'obj': obj, 'ingresos': ing, 'gastos': gas, 'balance': bal, 'meta': meta, 'porcentaje': porc})
+
     es_principal = request.user.is_staff or is_tesorero_principal(request.user, current_curso)
     context = {
         'alumnos': alumnos,
@@ -174,6 +198,12 @@ def admin_home(request):
         'cuotas_pendientes': cuotas_pendientes,
         'monto_promedio': monto_promedio,
         'es_principal': es_principal,
+        'total_act_ingresos': total_act_ingresos,
+        'total_cuotas_recaudado': total_cuotas_recaudado,
+        'total_ingresos': total_ingresos,
+        'total_gastos': total_gastos,
+        'balance_neto': balance_neto,
+        'objetivos_balance': objetivos_balance,
     }
     return render(request, 'fondos/admin_home.html', context)
 
@@ -933,6 +963,179 @@ def generar_reporte(request):
             ws.cell(i, 5, student.total_funds).border = border
             ws.cell(i, 5).number_format = '"$"#,##0'
 
+    # ── REPORTE: INFORME GERENCIAL ────────────────────────────────────────────
+    if tipo_reporte == 'gerencial':
+        from datetime import date as _date
+        ws = wb.create_sheet('Informe de Balance')
+        ws.column_dimensions['A'].width = 32
+        ws.column_dimensions['B'].width = 14
+        ws.column_dimensions['C'].width = 16
+        ws.column_dimensions['D'].width = 16
+        ws.column_dimensions['E'].width = 16
+
+        color_obj_bg   = 'FF4F46E5'
+        color_obj_text = 'FFFFFFFF'
+        color_bal_bg   = 'FFEEECFF'
+        color_sin_bg   = 'FFE2E8F0'
+        color_ing      = 'FF198754'
+        color_gas      = 'FFDC3545'
+
+        def obj_header(ws, row, texto, bg=color_obj_bg, text=color_obj_text, size=11):
+            c = ws.cell(row, 1, texto)
+            ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+            c.font = Font(bold=True, size=size, color=text)
+            c.fill = PatternFill('solid', fgColor=bg)
+            c.alignment = Alignment(horizontal='left', vertical='center')
+            ws.row_dimensions[row].height = 18
+
+        def money(ws, row, col, val, color=None):
+            c = ws.cell(row, col, val)
+            c.number_format = '"$"#,##0'
+            c.border = border
+            if color:
+                c.font = Font(bold=True, color=color)
+            return c
+
+        today_str = _date.today().strftime('%d/%m/%Y')
+        row = 1
+        # Título
+        c = ws.cell(row, 1, f'Informe de Balance  —  {current_curso}')
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+        c.font = Font(bold=True, size=14)
+        ws.row_dimensions[row].height = 22
+        row += 1
+        c = ws.cell(row, 1, f'Generado el {today_str}')
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+        c.font = Font(italic=True, color='FF888888', size=9)
+        row += 2
+
+        # Resumen global
+        total_act_ing = Activity.objects.filter(curso=current_curso).aggregate(t=Sum('total_amount'))['t'] or 0
+        total_cuotas_ing = sum(c2.total_recaudado for c2 in Cuota.objects.filter(curso=current_curso))
+        total_gas_global = Gasto.objects.filter(curso=current_curso).aggregate(t=Sum('amount'))['t'] or 0
+        total_ing_global = total_act_ing + total_cuotas_ing
+        bal_global = total_ing_global - total_gas_global
+
+        for col, label in enumerate(['Concepto', 'Ingresos', 'Gastos', 'Balance', 'Progreso'], 1):
+            c2 = ws.cell(row, col, label)
+            style_header(c2)
+            c2.border = border
+        row += 1
+        ws.cell(row, 1, 'TOTAL DEL CURSO').font = Font(bold=True)
+        ws.cell(row, 1).border = border
+        money(ws, row, 2, total_ing_global, color=color_ing)
+        money(ws, row, 3, total_gas_global, color=color_gas)
+        money(ws, row, 4, bal_global, color=color_ing if bal_global >= 0 else color_gas)
+        ws.cell(row, 5, '').border = border
+        for col in range(1, 6):
+            ws.cell(row, col).fill = PatternFill('solid', fgColor='FFEEECFF')
+        row += 2
+
+        # Por objetivo
+        objetivos_list = Objetivo.objects.filter(curso=current_curso).prefetch_related('activities', 'cuotas', 'gastos')
+        for obj in objetivos_list:
+            acts   = list(obj.activities.all().order_by('-date'))
+            cuotas = list(obj.cuotas.all().order_by('-date'))
+            gastos = list(obj.gastos.all().order_by('-date'))
+
+            ing_act    = sum(a.total_amount for a in acts)
+            ing_cuotas = sum(c2.total_recaudado for c2 in cuotas)
+            ing_obj    = ing_act + ing_cuotas
+            gas_obj    = sum(g.amount for g in gastos)
+            bal_obj    = ing_obj - gas_obj
+            meta       = obj.monto_meta_total
+            porc       = min(100, int(bal_obj * 100 / meta)) if meta and meta > 0 else None
+
+            # Cabecera objetivo
+            obj_header(ws, row, f'  {obj.name}')
+            row += 1
+            if obj.descripcion:
+                c2 = ws.cell(row, 1, f'  {obj.descripcion}')
+                ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+                c2.font = Font(italic=True, color='FF666666', size=9)
+                row += 1
+
+            # Filas de detalle
+            for act in acts:
+                ws.cell(row, 1, f'    Actividad: {act.name}').border = border
+                ws.cell(row, 2, act.date.strftime('%d/%m/%Y')).border = border
+                money(ws, row, 3, act.total_amount)
+                ws.cell(row, 4, '').border = border
+                ws.cell(row, 5, '').border = border
+                row += 1
+            for cuota in cuotas:
+                ws.cell(row, 1, f'    Cuota: {cuota.name}').border = border
+                ws.cell(row, 2, cuota.date.strftime('%d/%m/%Y')).border = border
+                money(ws, row, 3, cuota.total_recaudado)
+                ws.cell(row, 4, '').border = border
+                ws.cell(row, 5, '').border = border
+                row += 1
+            for gasto in gastos:
+                ws.cell(row, 1, f'    Gasto: {gasto.name}').border = border
+                ws.cell(row, 2, gasto.date.strftime('%d/%m/%Y')).border = border
+                ws.cell(row, 3, '').border = border
+                money(ws, row, 4, gasto.amount)
+                ws.cell(row, 5, '').border = border
+                row += 1
+
+            # Fila de balance del objetivo
+            ws.cell(row, 1, 'Balance del objetivo').border = border
+            ws.cell(row, 1).font = Font(bold=True)
+            money(ws, row, 2, ing_obj, color=color_ing)
+            money(ws, row, 3, gas_obj, color=color_gas)
+            money(ws, row, 4, bal_obj, color=color_ing if bal_obj >= 0 else color_gas)
+            if meta is not None:
+                progreso_txt = f'Meta ${meta:,} — {porc}%' if porc is not None else f'Meta ${meta:,}'
+                ws.cell(row, 5, progreso_txt).border = border
+                ws.cell(row, 5).font = Font(bold=True)
+            else:
+                ws.cell(row, 5, '').border = border
+            for col in range(1, 6):
+                ws.cell(row, col).fill = PatternFill('solid', fgColor=color_bal_bg)
+            row += 2
+
+        # Sin objetivo
+        acts_sin   = list(Activity.objects.filter(curso=current_curso, objetivo__isnull=True).order_by('-date'))
+        cuotas_sin = list(Cuota.objects.filter(curso=current_curso, objetivo__isnull=True).order_by('-date'))
+        gastos_sin = list(Gasto.objects.filter(curso=current_curso, objetivo__isnull=True).order_by('-date'))
+        if acts_sin or cuotas_sin or gastos_sin:
+            obj_header(ws, row, '  Sin objetivo asignado', bg=color_sin_bg, text='FF333333', size=10)
+            row += 1
+            ing_sin = gas_sin = 0
+            for act in acts_sin:
+                ws.cell(row, 1, f'    Actividad: {act.name}').border = border
+                ws.cell(row, 2, act.date.strftime('%d/%m/%Y')).border = border
+                money(ws, row, 3, act.total_amount)
+                ws.cell(row, 4, '').border = border
+                ws.cell(row, 5, '').border = border
+                ing_sin += act.total_amount
+                row += 1
+            for cuota in cuotas_sin:
+                ws.cell(row, 1, f'    Cuota: {cuota.name}').border = border
+                ws.cell(row, 2, cuota.date.strftime('%d/%m/%Y')).border = border
+                money(ws, row, 3, cuota.total_recaudado)
+                ws.cell(row, 4, '').border = border
+                ws.cell(row, 5, '').border = border
+                ing_sin += cuota.total_recaudado
+                row += 1
+            for gasto in gastos_sin:
+                ws.cell(row, 1, f'    Gasto: {gasto.name}').border = border
+                ws.cell(row, 2, gasto.date.strftime('%d/%m/%Y')).border = border
+                ws.cell(row, 3, '').border = border
+                money(ws, row, 4, gasto.amount)
+                ws.cell(row, 5, '').border = border
+                gas_sin += gasto.amount
+                row += 1
+            bal_sin = ing_sin - gas_sin
+            ws.cell(row, 1, 'Balance sin objetivo').border = border
+            ws.cell(row, 1).font = Font(bold=True)
+            money(ws, row, 2, ing_sin, color=color_ing)
+            money(ws, row, 3, gas_sin, color=color_gas)
+            money(ws, row, 4, bal_sin, color=color_ing if bal_sin >= 0 else color_gas)
+            ws.cell(row, 5, '').border = border
+            for col in range(1, 6):
+                ws.cell(row, col).fill = PatternFill('solid', fgColor=color_sin_bg)
+
     if not wb.sheetnames:
         wb.create_sheet('Sin datos')
 
@@ -1099,6 +1302,173 @@ def _generar_reporte_pdf(request, current_curso, tipo_reporte):
         t = Table(data, colWidths=[7 * cm, 7 * cm, 4 * cm, 4 * cm, 4 * cm])
         t.setStyle(TableStyle(header_row_style(5)))
         story.append(t)
+
+    # ── INFORME GERENCIAL ─────────────────────────────────────────────────────
+    if tipo_reporte == 'gerencial':
+        from datetime import date as _date
+        COLOR_OBJ    = colors.HexColor('#4F46E5')
+        COLOR_OBJ_LT = colors.HexColor('#EEECFF')
+        COLOR_SIN    = colors.HexColor('#E2E8F0')
+        COLOR_ING    = colors.HexColor('#198754')
+        COLOR_GAS    = colors.HexColor('#DC3545')
+
+        # Título y fecha
+        story.append(Paragraph(f'Informe de Balance  —  {current_curso}', titulo_style))
+        story.append(Paragraph(
+            f'<font color="#888888" size="8">Generado el {_date.today().strftime("%d/%m/%Y")}</font>',
+            normal,
+        ))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Resumen global
+        total_act_ing    = Activity.objects.filter(curso=current_curso).aggregate(t=Sum('total_amount'))['t'] or 0
+        total_cuotas_ing = sum(c2.total_recaudado for c2 in Cuota.objects.filter(curso=current_curso))
+        total_gas_global = Gasto.objects.filter(curso=current_curso).aggregate(t=Sum('amount'))['t'] or 0
+        total_ing_global = total_act_ing + total_cuotas_ing
+        bal_global       = total_ing_global - total_gas_global
+        bal_color        = '#198754' if bal_global >= 0 else '#DC3545'
+
+        summary_data = [
+            ['', 'Ingresos', 'Gastos', 'Balance'],
+            [
+                'TOTAL DEL CURSO',
+                f'${total_ing_global:,}',
+                f'${total_gas_global:,}',
+                f'${bal_global:,}',
+            ],
+        ]
+        st = Table(summary_data, colWidths=[8 * cm, 4 * cm, 4 * cm, 4 * cm])
+        st.setStyle(TableStyle([
+            ('BACKGROUND',   (0, 0), (-1, 0), COLOR_HEADER),
+            ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME',     (0, 1), (-1, 1), 'Helvetica-Bold'),
+            ('FONTSIZE',     (0, 0), (-1, -1), 9),
+            ('BACKGROUND',   (0, 1), (-1, 1), COLOR_OBJ_LT),
+            ('TEXTCOLOR',    (1, 1), (1, 1),  COLOR_ING),
+            ('TEXTCOLOR',    (2, 1), (2, 1),  COLOR_GAS),
+            ('TEXTCOLOR',    (3, 1), (3, 1),  COLOR_ING if bal_global >= 0 else COLOR_GAS),
+            ('GRID',         (0, 0), (-1, -1), 0.5, colors.HexColor('#DEE2E6')),
+            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',  (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+        ]))
+        story.append(st)
+        story.append(Spacer(1, 0.5 * cm))
+
+        # Por objetivo
+        obj_title_style = ParagraphStyle(
+            'obj_title', parent=styles['Normal'],
+            fontName='Helvetica-Bold', fontSize=10,
+            textColor=colors.white, backColor=COLOR_OBJ,
+            leftIndent=4, spaceAfter=0, spaceBefore=6,
+        )
+        objetivos_list = Objetivo.objects.filter(curso=current_curso).prefetch_related('activities', 'cuotas', 'gastos')
+
+        for obj in objetivos_list:
+            acts   = list(obj.activities.all().order_by('-date'))
+            cuotas = list(obj.cuotas.all().order_by('-date'))
+            gastos = list(obj.gastos.all().order_by('-date'))
+
+            ing_act    = sum(a.total_amount for a in acts)
+            ing_cuotas = sum(c2.total_recaudado for c2 in cuotas)
+            ing_obj    = ing_act + ing_cuotas
+            gas_obj    = sum(g.amount for g in gastos)
+            bal_obj    = ing_obj - gas_obj
+            meta       = obj.monto_meta_total
+            porc       = min(100, int(bal_obj * 100 / meta)) if meta and meta > 0 else None
+
+            story.append(Paragraph(f'  {obj.name}', obj_title_style))
+            if obj.descripcion:
+                story.append(Paragraph(
+                    f'<font size="8" color="#666666">{obj.descripcion}</font>', normal,
+                ))
+            story.append(Spacer(1, 0.15 * cm))
+
+            # Tabla de detalle
+            det_data = [['Concepto', 'Fecha', 'Ingresos', 'Gastos', 'Balance']]
+            for act in acts:
+                det_data.append([f'Actividad: {act.name}', act.date.strftime('%d/%m/%Y'), f'${act.total_amount:,}', '', ''])
+            for cuota in cuotas:
+                det_data.append([f'Cuota: {cuota.name}', cuota.date.strftime('%d/%m/%Y'), f'${cuota.total_recaudado:,}', '', ''])
+            for gasto in gastos:
+                det_data.append([f'Gasto: {gasto.name}', gasto.date.strftime('%d/%m/%Y'), '', f'${gasto.amount:,}', ''])
+
+            bal_color_obj = COLOR_ING if bal_obj >= 0 else COLOR_GAS
+            det_data.append(['Total', '', f'${ing_obj:,}', f'${gas_obj:,}', f'${bal_obj:,}'])
+
+            dt = Table(det_data, colWidths=[7.5 * cm, 2.8 * cm, 3 * cm, 3 * cm, 4.2 * cm])
+            dt_style = [
+                ('BACKGROUND',    (0, 0),  (-1, 0),     COLOR_HEADER),
+                ('TEXTCOLOR',     (0, 0),  (-1, 0),     colors.white),
+                ('FONTNAME',      (0, 0),  (-1, 0),     'Helvetica-Bold'),
+                ('FONTNAME',      (0, -1), (-1, -1),    'Helvetica-Bold'),
+                ('FONTSIZE',      (0, 0),  (-1, -1),    8),
+                ('ROWBACKGROUNDS',(0, 1),  (-1, -2),    [colors.white, colors.HexColor('#F8F9FA')]),
+                ('BACKGROUND',    (0, -1), (-1, -1),    COLOR_OBJ_LT),
+                ('TEXTCOLOR',     (2, -1), (2, -1),     COLOR_ING),
+                ('TEXTCOLOR',     (3, -1), (3, -1),     COLOR_GAS),
+                ('TEXTCOLOR',     (4, -1), (4, -1),     bal_color_obj),
+                ('GRID',          (0, 0),  (-1, -1),    0.5, colors.HexColor('#DEE2E6')),
+                ('VALIGN',        (0, 0),  (-1, -1),    'MIDDLE'),
+                ('LEFTPADDING',   (0, 0),  (-1, -1),    6),
+                ('RIGHTPADDING',  (0, 0),  (-1, -1),    6),
+                ('TOPPADDING',    (0, 0),  (-1, -1),    3),
+                ('BOTTOMPADDING', (0, 0),  (-1, -1),    3),
+            ]
+            dt.setStyle(TableStyle(dt_style))
+            story.append(dt)
+            story.append(Spacer(1, 0.4 * cm))
+
+        # Sin objetivo
+        acts_sin   = list(Activity.objects.filter(curso=current_curso, objetivo__isnull=True).order_by('-date'))
+        cuotas_sin = list(Cuota.objects.filter(curso=current_curso, objetivo__isnull=True).order_by('-date'))
+        gastos_sin = list(Gasto.objects.filter(curso=current_curso, objetivo__isnull=True).order_by('-date'))
+        if acts_sin or cuotas_sin or gastos_sin:
+            sin_title_style = ParagraphStyle(
+                'sin_title', parent=styles['Normal'],
+                fontName='Helvetica-Bold', fontSize=9,
+                textColor=colors.HexColor('#333333'), backColor=COLOR_SIN,
+                leftIndent=4, spaceAfter=0, spaceBefore=6,
+            )
+            story.append(Paragraph('  Sin objetivo asignado', sin_title_style))
+            story.append(Spacer(1, 0.15 * cm))
+            sin_data = [['Concepto', 'Fecha', 'Ingresos', 'Gastos', 'Balance']]
+            ing_sin = gas_sin = 0
+            for act in acts_sin:
+                sin_data.append([f'Actividad: {act.name}', act.date.strftime('%d/%m/%Y'), f'${act.total_amount:,}', '', ''])
+                ing_sin += act.total_amount
+            for cuota in cuotas_sin:
+                sin_data.append([f'Cuota: {cuota.name}', cuota.date.strftime('%d/%m/%Y'), f'${cuota.total_recaudado:,}', '', ''])
+                ing_sin += cuota.total_recaudado
+            for gasto in gastos_sin:
+                sin_data.append([f'Gasto: {gasto.name}', gasto.date.strftime('%d/%m/%Y'), '', f'${gasto.amount:,}', ''])
+                gas_sin += gasto.amount
+            bal_sin = ing_sin - gas_sin
+            bal_sin_color = COLOR_ING if bal_sin >= 0 else COLOR_GAS
+            sin_data.append(['Total', '', f'${ing_sin:,}', f'${gas_sin:,}', f'${bal_sin:,}'])
+            st2 = Table(sin_data, colWidths=[7.5 * cm, 2.8 * cm, 3 * cm, 3 * cm, 4.2 * cm])
+            st2.setStyle(TableStyle([
+                ('BACKGROUND',    (0, 0),  (-1, 0),  COLOR_HEADER),
+                ('TEXTCOLOR',     (0, 0),  (-1, 0),  colors.white),
+                ('FONTNAME',      (0, 0),  (-1, 0),  'Helvetica-Bold'),
+                ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE',      (0, 0),  (-1, -1), 8),
+                ('ROWBACKGROUNDS',(0, 1),  (-1, -2), [colors.white, colors.HexColor('#F8F9FA')]),
+                ('BACKGROUND',    (0, -1), (-1, -1), COLOR_SIN),
+                ('TEXTCOLOR',     (2, -1), (2, -1),  COLOR_ING),
+                ('TEXTCOLOR',     (3, -1), (3, -1),  COLOR_GAS),
+                ('TEXTCOLOR',     (4, -1), (4, -1),  bal_sin_color),
+                ('GRID',          (0, 0),  (-1, -1), 0.5, colors.HexColor('#DEE2E6')),
+                ('VALIGN',        (0, 0),  (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING',   (0, 0),  (-1, -1), 6),
+                ('RIGHTPADDING',  (0, 0),  (-1, -1), 6),
+                ('TOPPADDING',    (0, 0),  (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0),  (-1, -1), 3),
+            ]))
+            story.append(st2)
 
     doc.build(story)
     buf.seek(0)
